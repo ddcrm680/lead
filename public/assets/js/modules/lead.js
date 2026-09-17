@@ -222,5 +222,351 @@
         }
     });
 
+
+    /**
+     * ----------------------------------------
+     * Lead List
+     * ----------------------------------------
+     */
+
+    const leadsPage = $('#leads');
+    const leadList = $('#leadList');
+    const leadSearch = $('#leadSearch');
+    const leadStatusFilter = $('#leadStatusFilter');
+    const leadSourceFilter = $('#leadSourceFilter');
+    const advancedStatus = $('#advancedStatus');
+    const advancedSource = $('#advancedSource');
+    const advancedCity = $('#advancedCity');
+    const advancedState = $('#advancedState');
+    const advancedCountry = $('#advancedCountry');
+    const advancedPipelineStage = $('#advancedPipelineStage');
+    const advancedAgent = $('#advancedAgent');
+    const advancedPriority = $('#advancedPriority');
+    const advancedTags = $('#advancedTags');
+    const advancedFollowUpType = $('#advancedFollowUpType');
+    const advancedFollowUpStatus = $('#advancedFollowUpStatus');
+    const advancedCreatedAfter = $('#advancedCreatedAfter');
+    const advancedCreatedBefore = $('#advancedCreatedBefore');
+    const applyAdvancedFiltersBtn = $('#applyAdvancedFilters');
+    const resetAdvancedFiltersBtn = $('#resetAdvancedFilters');
+
+    const leadListState = {
+        page: 1,
+        perPage: 25,
+    };
+
+    let leadSearchTimer = null;
+    let leadListAbortController = null;
+
+    function isMobileLeadList() {
+        return window.matchMedia('(max-width: 767.98px)').matches;
+    }
+
+    async function loadLeads() {
+        if (!leadsPage || !leadList) {
+            return;
+        }
+
+        const dataUrl = leadsPage.dataset.leadsDataUrl;
+
+        if (!dataUrl) {
+            return;
+        }
+
+        if (leadListAbortController) {
+            leadListAbortController.abort();
+        }
+
+        leadListAbortController = new AbortController();
+
+       if (isMobileLeadList()) {
+            renderSkeleton({
+                element: leadList,
+                type: 'card',
+                count: 3,
+            });
+        } else {
+            renderSkeleton({
+                element: leadList,
+                type: 'row',
+                count: 3,
+                columns: 9,
+            });
+        }
+
+        const params = {
+            page: leadListState.page,
+            per_page: leadListState.perPage,
+        };
+
+        if (leadSearch?.value.trim()) {
+            params.search = leadSearch.value.trim();
+        }
+
+        if (leadStatusFilter?.value) {
+            params.status_id = leadStatusFilter.value;
+        }
+
+        if (leadSourceFilter?.value) {
+            params.source_id = leadSourceFilter.value;
+        }
+
+        if (advancedCity?.value.trim()) {
+            params.city = advancedCity.value.trim();
+        }
+
+        if (advancedState?.value.trim()) {
+            params.state = advancedState.value.trim();
+        }
+
+        if (advancedCountry?.value.trim()) {
+            params.country = advancedCountry.value.trim();
+        }
+
+        if (advancedPipelineStage?.value) {
+            params.pipeline_stage_id = advancedPipelineStage.value;
+        }
+
+        if (advancedAgent?.value) {
+            params.assigned_user_id = advancedAgent.value;
+        }
+
+        if (advancedPriority?.value) {
+            params.priority = advancedPriority.value;
+        }
+
+        if (advancedTags) {
+            const selectedTags = Array.from(advancedTags.selectedOptions)
+                .map((option) => option.value)
+                .filter(Boolean);
+
+            if (selectedTags.length) {
+                params.tag_ids = selectedTags;
+            }
+        }
+
+        if (advancedFollowUpType?.value) {
+            params.follow_up_type_id = advancedFollowUpType.value;
+        }
+
+        if (advancedFollowUpStatus?.value) {
+            params.follow_up_status_id = advancedFollowUpStatus.value;
+        }
+
+        if (advancedCreatedAfter?.value) {
+            params.created_after = advancedCreatedAfter.value;
+        }
+
+        if (advancedCreatedBefore?.value) {
+            params.created_before = advancedCreatedBefore.value;
+        }
+
+        try {
+            const response = await axios.get(
+                dataUrl,
+                {
+                    params,
+                    signal: leadListAbortController.signal,
+                }
+            );
+
+            leadList.innerHTML = response.data.html ?? '';
+
+        } catch (error) {
+            if (axios.isCancel(error)) {
+                return;
+            }
+
+            handleResponseError(error);
+
+            leadList.innerHTML = `
+                <div class="empty-state text-center">
+
+                    <i class="bi bi-exclamation-circle"></i>
+
+                    <h3>
+                        Unable to load leads
+                    </h3>
+
+                    <p>
+                        Please try again.
+                    </p>
+
+                </div>
+            `;
+        }
+    }
+
+    function applyLeadFilters() {
+        leadListState.page = 1;
+
+        loadLeads();
+    }
+
+    function resetAdvancedFilters() {
+        if (advancedStatus) {
+            advancedStatus.value = '';
+        }
+
+        if (advancedSource) {
+            advancedSource.value = '';
+        }
+
+        if (advancedCity) {
+            advancedCity.value = '';
+        }
+
+        if (advancedState) {
+            advancedState.value = '';
+        }
+
+        if (advancedCountry) {
+            advancedCountry.value = '';
+        }
+
+        if (advancedPipelineStage) {
+            advancedPipelineStage.value = '';
+        }
+
+        if (advancedAgent) {
+            advancedAgent.value = '';
+        }
+
+        if (advancedPriority) {
+            advancedPriority.value = '';
+        }
+
+        if (advancedTags) {
+            Array.from(advancedTags.options).forEach((option) => {
+                option.selected = false;
+            });
+        }
+
+        if (advancedFollowUpType) {
+            advancedFollowUpType.value = '';
+        }
+
+        if (advancedFollowUpStatus) {
+            advancedFollowUpStatus.value = '';
+        }
+
+        if (advancedCreatedAfter) {
+            advancedCreatedAfter.value = '';
+        }
+
+        if (advancedCreatedBefore) {
+            advancedCreatedBefore.value = '';
+        }
+
+        if (leadStatusFilter) {
+            leadStatusFilter.value = '';
+        }
+
+        if (leadSourceFilter) {
+            leadSourceFilter.value = '';
+        }
+
+        applyLeadFilters();
+    }
+
+    applyAdvancedFiltersBtn?.addEventListener(
+        'click',
+        applyLeadFilters
+    );
+
+    resetAdvancedFiltersBtn?.addEventListener(
+        'click',
+        resetAdvancedFilters
+    );
+
+    leadSearch?.addEventListener('input', function () {
+        clearTimeout(leadSearchTimer);
+
+        leadSearchTimer = setTimeout(() => {
+            applyLeadFilters();
+        }, 300);
+    });
+
+    leadStatusFilter?.addEventListener(
+        'change',
+        function () {
+            if (advancedStatus) {
+                advancedStatus.value = leadStatusFilter.value;
+            }
+
+            applyLeadFilters();
+        }
+    );
+
+    leadSourceFilter?.addEventListener(
+        'change',
+        function () {
+            if (advancedSource) {
+                advancedSource.value = leadSourceFilter.value;
+            }
+
+            applyLeadFilters();
+        }
+    );
+
+
+    advancedStatus?.addEventListener(
+        'change',
+        function () {
+            if (leadStatusFilter) {
+                leadStatusFilter.value = advancedStatus.value;
+            }
+        }
+    );
+
+    advancedSource?.addEventListener(
+        'change',
+        function () {
+            if (leadSourceFilter) {
+                leadSourceFilter.value = advancedSource.value;
+            }
+        }
+    );
+
+    leadList?.addEventListener('change', function (event) {
+        if (!event.target.matches('#leadPerPage')) {
+            return;
+        }
+
+        leadListState.perPage = Number(
+            event.target.value
+        );
+
+        leadListState.page = 1;
+
+        loadLeads();
+    });
+
+    leadList?.addEventListener('click', function (event) {
+        const paginationButton = event.target.closest(
+            '[data-lead-page]'
+        );
+
+        if (!paginationButton || paginationButton.disabled) {
+            return;
+        }
+
+        const page = Number(
+            paginationButton.dataset.leadPage
+        );
+
+        if (!page || page < 1) {
+            return;
+        }
+
+        leadListState.page = page;
+
+        loadLeads();
+    });
+
+    loadLeads();
+
+
+
     window.openCreateLeadDrawer = openCreateLeadDrawer;
 })();

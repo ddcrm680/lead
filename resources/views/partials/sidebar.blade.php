@@ -60,7 +60,17 @@
 
       <div class="nav-caption">LEADS</div>
       <nav class="side-nav">
-        <button type="button" data-page="leads"><i class="bi bi-people-fill"></i><span>All Leads</span></button>
+
+          @if (auth()->user()?->hasPermission('leads.view'))
+              <a
+                  href="{{ route('leads') }}"
+                  class="{{ request()->routeIs('leads', 'leadsData') ? 'active' : '' }}"
+              >
+                  <i class="bi bi-people-fill"></i>
+                  <span>All Leads</span>
+              </a>
+          @endif
+
         <button type="button" data-page="pipeline"><i class="bi bi-kanban-fill"></i><span>Pipeline</span></button>
         <button type="button" data-page="reports"><i class="bi bi-bar-chart-line-fill"></i><span>Reports</span></button>
       </nav>

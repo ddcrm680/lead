@@ -40,7 +40,7 @@ class LoginController extends Controller
         }
 
         $user = User::where('email', $request->email)
-            //->where('is_active', true)
+            ->where('is_active', true)
             ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {

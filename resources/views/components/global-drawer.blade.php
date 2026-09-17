@@ -10,37 +10,6 @@
     <div class="offcanvas-body" id="leadDetailBody"></div>
   </div>
 
-
-  <div class="offcanvas offcanvas-end filter-drawer" tabindex="-1" id="filterDrawer" aria-labelledby="filterDrawerTitle">
-    <div class="offcanvas-header">
-      <div>
-        <span class="eyebrow">REFINE RESULTS</span>
-        <h2 id="filterDrawerTitle">Advanced Filters</h2>
-      </div>
-      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-    </div>
-    <div class="offcanvas-body">
-      <div class="form-section">
-        <label>City <input class="form-control" id="advancedCity" placeholder="Any city">
-        </label>
-        <label>Assigned agent <select class="form-select" id="advancedAgent">
-            <option value="">Any agent</option>
-          </select>
-        </label>
-        <label>Minimum lead score <input class="form-range" id="advancedScore" type="range" min="0" max="100" value="0">
-          <span id="advancedScoreLabel">0+</span>
-        </label>
-        <label>Created after <input class="form-control" id="advancedDate" type="date">
-        </label>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-light" id="resetAdvancedFilters" type="button">Reset</button>
-      <button class="btn btn-danger" id="applyAdvancedFilters" type="button" data-bs-dismiss="offcanvas">Apply filters</button>
-    </div>
-  </div>
-
-
   <div class="offcanvas offcanvas-end notification-drawer" tabindex="-1" id="notificationDrawer" aria-labelledby="notificationDrawerTitle">
     <div class="offcanvas-header">
       <div>
