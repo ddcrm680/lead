@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
+// use Illuminate\Http\Request;
+// use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -33,35 +33,35 @@ Route::get('/permission-test', function () {
     ->name('permissionTest');
 
 
-Route::get('/deploy-setup', function (Request $request) {
-    // $token = env('DEPLOY_TOKEN');
+// Route::get('/deploy-setup', function (Request $request) {
+//     // $token = env('DEPLOY_TOKEN');
 
-    // abort_unless(
-    //     is_string($token)
-    //     && $token !== ''
-    //     && hash_equals($token, (string) $request->query('token')),
-    //     403,
-    //     'Unauthorized'
-    // );
+//     // abort_unless(
+//     //     is_string($token)
+//     //     && $token !== ''
+//     //     && hash_equals($token, (string) $request->query('token')),
+//     //     403,
+//     //     'Unauthorized'
+//     // );
 
-    try {
-        Artisan::call('migrate:fresh', [ '--force' => true] );
+//     try {
+//         Artisan::call('migrate:fresh', [ '--force' => true] );
 
-        $freshOutput = Artisan::output();
+//         $freshOutput = Artisan::output();
 
-        Artisan::call('app:setup', [ '--force' => true,'--with-lead-defaults' => true ]);
+//         Artisan::call('app:setup', [ '--force' => true,'--with-lead-defaults' => true ]);
 
-        $setupOutput = Artisan::output();
+//         $setupOutput = Artisan::output();
 
-        return response()->json([
-            'status' => 'success',
-            'migrate_fresh' => $freshOutput,
-            'app_setup' => $setupOutput,
-        ]);
-    } catch (\Throwable $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage(),
-        ], 500);
-    }
-});
+//         return response()->json([
+//             'status' => 'success',
+//             'migrate_fresh' => $freshOutput,
+//             'app_setup' => $setupOutput,
+//         ]);
+//     } catch (\Throwable $e) {
+//         return response()->json([
+//             'status' => 'error',
+//             'message' => $e->getMessage(),
+//         ], 500);
+//     }
+// });
