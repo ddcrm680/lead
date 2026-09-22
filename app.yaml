@@ -1,0 +1,12 @@
+jobs:
+  - name: application-setup
+    trigger: pre-deployment
+    action:
+      execute:
+        command: php
+        cli_args:
+          - artisan
+          - app:setup
+          - --force
+          - --with-lead-defaults
+        timeout: 5m
