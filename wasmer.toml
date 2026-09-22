@@ -1,4 +1,6 @@
 [package]
+name = "ddcrm680/lead"
+version = "0.1.0"
 description = "Lead CMS Laravel application"
 
 [dependencies]
@@ -35,6 +37,19 @@ main-args = [
 
 [[command]]
 name = "migrate"
+module = "php/php:php"
+runner = "wasi"
+
+[command.annotations.wasi]
+main-args = [
+    "/app/artisan",
+    "migrate",
+    "--force"
+]
+
+# This maps to the job trigger in your web dashboard's app.yaml
+[[command]]
+name = "after_deploy"
 module = "php/php:php"
 runner = "wasi"
 
