@@ -6,7 +6,7 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
-#[Signature('app:setup')]
+#[Signature('app:setup {--force} {--with-lead-defaults}')]
 #[Description('Set up the application database and default data')]
 class AppSetupCommand extends Command
 {
@@ -20,7 +20,9 @@ class AppSetupCommand extends Command
 
         $this->info('Running migrations...');
 
-        if ($this->call('migrate') !== self::SUCCESS) {
+        if ($this->call('migrate', [
+            '--force' => (bool) $this->option('force'),
+        ]) !== self::SUCCESS) {
             $this->error('Migration failed. Application setup stopped.');
 
             return self::FAILURE;
@@ -31,6 +33,7 @@ class AppSetupCommand extends Command
 
         if ($this->call('db:seed', [
             '--class' => 'RoleSeeder',
+            '--force' => (bool) $this->option('force'),
         ]) !== self::SUCCESS) {
             $this->error('Role seeding failed. Application setup stopped.');
 
@@ -42,6 +45,7 @@ class AppSetupCommand extends Command
 
         if ($this->call('db:seed', [
             '--class' => 'SuperAdminSeeder',
+            '--force' => (bool) $this->option('force'),
         ]) !== self::SUCCESS) {
             $this->error('Super Admin seeding failed. Application setup stopped.');
 
@@ -59,14 +63,19 @@ class AppSetupCommand extends Command
 
         $this->newLine();
 
-        if ($this->confirm(
-            'Install default Lead CRM configuration?',
-            true,
-        )) {
+        $installLeadDefaults =
+            (bool) $this->option('with-lead-defaults')
+            || $this->confirm(
+                'Install default Lead CRM configuration?',
+                true,
+            );
+
+        if ($installLeadDefaults) {
             $this->info('Seeding Lead defaults...');
 
             if ($this->call('db:seed', [
                 '--class' => 'LeadDefaultsSeeder',
+                '--force' => (bool) $this->option('force'),
             ]) !== self::SUCCESS) {
                 $this->error('Lead defaults seeding failed. Application setup stopped.');
 
