@@ -25,7 +25,7 @@ A Laravel 13+ based Lead Management System with role-based access control, permi
 
 ---
 
-## Tech Stack Taken
+## Tech Stack
 
 - Laravel 13+
 - PHP 8.3+
