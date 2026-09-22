@@ -6,24 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('settings', function (Blueprint $table) {
-                        $table->string('deployment_test')->nullable();
+            $table->string('deployment_test_two')->nullable();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('settings', function (Blueprint $table) {
-                        $table->dropColumn('deployment_test');
-
+            $table->dropColumn('deployment_test_two');
         });
     }
 };

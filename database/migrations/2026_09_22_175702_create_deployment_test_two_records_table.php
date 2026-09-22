@@ -6,23 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('deployment_test_records', function (Blueprint $table) {
+        Schema::create('deployment_test_two_records', function (Blueprint $table) {
             $table->id();
             $table->string('note')->nullable();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('deployment_test_records');
+        Schema::dropIfExists('deployment_test_two_records');
     }
 };
