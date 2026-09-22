@@ -55,10 +55,6 @@ runner = "wasi"
 
 [command.annotations.wasi]
 main-args = [
-    "/app/artisan",
-    "app:setup",
-    "--force",
-    "--with-lead-defaults"
+    "-r",
+    "passthru('php /app/artisan migrate --force && php /app/artisan app:setup --force --with-lead-defaults');"
 ]
-
-
