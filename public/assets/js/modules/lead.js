@@ -1,6 +1,6 @@
 /**
  * --------------------------------------------------------------------------
- * Leads Module (Dynamic Injection & Global Delegation)
+ * Leads Module
  * --------------------------------------------------------------------------
  */
 (() => {
@@ -39,8 +39,9 @@
                 return;
             }
 
-            // Initialize Tom Select on newly injected markup
+            // Initialize Tom Select on newly injected markup.
             const tagsSelect = $('#leadTags', addLeadDrawer);
+
             if (tagsSelect && typeof TomSelect !== 'undefined') {
                 tagSelectInstance = new TomSelect(tagsSelect, {
                     plugins: ['remove_button'],
@@ -51,12 +52,11 @@
                 });
             }
 
-            // Show drawer
             bootstrap.Offcanvas
                 .getOrCreateInstance(addLeadDrawer)
                 .show();
 
-            // Self-cleaning on close: purge plugins and remove element from DOM
+            // Destroy plugins and remove the injected drawer after closing.
             addLeadDrawer.addEventListener(
                 'hidden.bs.offcanvas',
                 () => {
@@ -64,11 +64,11 @@
                         tagSelectInstance.destroy();
                         tagSelectInstance = null;
                     }
+
                     addLeadDrawer.remove();
                 },
                 { once: true }
             );
-
         } catch (error) {
             console.log(error);
             handleResponseError(error);
@@ -76,26 +76,38 @@
     }
 
     /**
-     * Global Click Delegation: Open Drawer & Contact Repeater Actions
+     * Handle Create Lead drawer and contact repeater actions.
      */
     document.addEventListener('click', function (event) {
-        // 1. Open Create Lead Drawer
-        const openBtn = event.target.closest('[data-bs-target="#addLead"], [data-action="create-lead"]');
+        const openBtn = event.target.closest(
+            '[data-bs-target="#addLead"], [data-action="create-lead"]'
+        );
+
         if (openBtn) {
             event.preventDefault();
-            const createUrl = openBtn.getAttribute('data-create-url') || openBtn.getAttribute('data-url');
+
+            const createUrl =
+                openBtn.getAttribute('data-create-url')
+                || openBtn.getAttribute('data-url');
+
             openCreateLeadDrawer(createUrl);
             return;
         }
 
-        // 2. Add Dynamic Contact Row
         const addContactBtn = event.target.closest('#addLeadContactBtn');
+
         if (addContactBtn) {
             const contactsContainer = $('#leadContacts');
-            if (!contactsContainer) return;
+
+            if (!contactsContainer) {
+                return;
+            }
 
             const row = document.createElement('div');
-            row.className = 'row g-2 align-items-end lead-contact-row mt-1';
+
+            row.className =
+                'row g-2 align-items-end lead-contact-row mt-1';
+
             row.setAttribute('data-contact-row', '');
 
             row.innerHTML = `
@@ -134,7 +146,9 @@
                             id="primaryContact${contactIndex}"
                             data-contact-primary
                         >
-                        <label class="form-check-label small" for="primaryContact${contactIndex}">Primary</label>
+                        <label class="form-check-label small" for="primaryContact${contactIndex}">
+                            Primary
+                        </label>
                     </div>
                 </div>
 
@@ -155,8 +169,8 @@
             return;
         }
 
-        // 3. Remove Dynamic Contact Row
         const removeContactBtn = event.target.closest('.remove-contact-btn');
+
         if (removeContactBtn) {
             const row = removeContactBtn.closest('[data-contact-row]');
             row?.remove();
@@ -164,23 +178,31 @@
     });
 
     /**
-     * Global Change Delegation: Single Primary Contact Radio Behavior
+     * Ensure only one contact can be marked as primary.
      */
     document.addEventListener('change', function (event) {
-        if (event.target.matches('[data-contact-primary]') && event.target.checked) {
-            const contactsContainer = $('#leadContacts');
-            if (!contactsContainer) return;
-
-            $$('[data-contact-primary]', contactsContainer).forEach((checkbox) => {
-                if (checkbox !== event.target) {
-                    checkbox.checked = false;
-                }
-            });
+        if (
+            !event.target.matches('[data-contact-primary]')
+            || !event.target.checked
+        ) {
+            return;
         }
+
+        const contactsContainer = $('#leadContacts');
+
+        if (!contactsContainer) {
+            return;
+        }
+
+        $$('[data-contact-primary]', contactsContainer).forEach((checkbox) => {
+            if (checkbox !== event.target) {
+                checkbox.checked = false;
+            }
+        });
     });
 
     /**
-     * Global Submit Delegation: Save Lead (Matches userEditForm Submit)
+     * Submit the Create Lead form.
      */
     document.addEventListener('submit', async function (event) {
         if (event.target.id !== 'addLeadForm') {
@@ -206,12 +228,12 @@
             handleResponseSuccess(response.data);
 
             const addLeadDrawer = $('#addLead');
+
             if (addLeadDrawer) {
                 bootstrap.Offcanvas
                     .getOrCreateInstance(addLeadDrawer)
                     .hide();
             }
-
         } catch (error) {
             handleResponseError(
                 error,
@@ -222,11 +244,10 @@
         }
     });
 
-
     /**
-     * ----------------------------------------
+     * --------------------------------------------------------------------------
      * Lead List
-     * ----------------------------------------
+     * --------------------------------------------------------------------------
      */
 
     const leadsPage = $('#leads');
@@ -234,6 +255,9 @@
     const leadSearch = $('#leadSearch');
     const leadStatusFilter = $('#leadStatusFilter');
     const leadSourceFilter = $('#leadSourceFilter');
+    const listViewBtn = $('#listViewBtn');
+    const compactViewBtn = $('#compactViewBtn');
+
     const advancedStatus = $('#advancedStatus');
     const advancedSource = $('#advancedSource');
     const advancedCity = $('#advancedCity');
@@ -247,6 +271,7 @@
     const advancedFollowUpStatus = $('#advancedFollowUpStatus');
     const advancedCreatedAfter = $('#advancedCreatedAfter');
     const advancedCreatedBefore = $('#advancedCreatedBefore');
+
     const applyAdvancedFiltersBtn = $('#applyAdvancedFilters');
     const resetAdvancedFiltersBtn = $('#resetAdvancedFilters');
 
@@ -258,10 +283,49 @@
     let leadSearchTimer = null;
     let leadListAbortController = null;
 
+    /**
+     * Switch between desktop list and compact lead views.
+     */
+    function setLeadView(view) {
+        const isCompact = view === 'compact';
+        const tableView = leadList?.querySelector('.table-desktop');
+        const compactView = leadList?.querySelector('.mobile-records');
+
+        listViewBtn?.classList.toggle('active', !isCompact);
+        compactViewBtn?.classList.toggle('active', isCompact);
+
+        if (isMobileLeadList()) {
+            tableView?.classList.add('d-none');
+            compactView?.classList.remove('d-none');
+            return;
+        }
+
+        tableView?.classList.toggle('d-none', isCompact);
+        compactView?.classList.toggle('d-none', !isCompact);
+    }
+
+    /**
+     * Check whether the lead list is using the mobile layout.
+     */
     function isMobileLeadList() {
         return window.matchMedia('(max-width: 767.98px)').matches;
     }
 
+    const leadListMobileQuery = window.matchMedia(
+        '(max-width: 767.98px)'
+    );
+
+    leadListMobileQuery.addEventListener('change', () => {
+        setLeadView(
+            compactViewBtn?.classList.contains('active')
+                ? 'compact'
+                : 'list'
+        );
+    });
+
+    /**
+     * Load the paginated lead list using the active filters.
+     */
     async function loadLeads() {
         if (!leadsPage || !leadList) {
             return;
@@ -279,7 +343,7 @@
 
         leadListAbortController = new AbortController();
 
-       if (isMobileLeadList()) {
+        if (isMobileLeadList()) {
             renderSkeleton({
                 element: leadList,
                 type: 'card',
@@ -372,6 +436,11 @@
 
             leadList.innerHTML = response.data.html ?? '';
 
+            setLeadView(
+                compactViewBtn?.classList.contains('active')
+                    ? 'compact'
+                    : 'list'
+            );
         } catch (error) {
             if (axios.isCancel(error)) {
                 return;
@@ -381,28 +450,25 @@
 
             leadList.innerHTML = `
                 <div class="empty-state text-center">
-
                     <i class="bi bi-exclamation-circle"></i>
-
-                    <h3>
-                        Unable to load leads
-                    </h3>
-
-                    <p>
-                        Please try again.
-                    </p>
-
+                    <h3>Unable to load leads</h3>
+                    <p>Please try again.</p>
                 </div>
             `;
         }
     }
 
+    /**
+     * Reset pagination and reload leads using the active filters.
+     */
     function applyLeadFilters() {
         leadListState.page = 1;
-
         loadLeads();
     }
 
+    /**
+     * Clear all advanced filters and reload the lead list.
+     */
     function resetAdvancedFilters() {
         if (advancedStatus) {
             advancedStatus.value = '';
@@ -469,6 +535,12 @@
         applyLeadFilters();
     }
 
+    /**
+     * --------------------------------------------------------------------------
+     * Lead List Events
+     * --------------------------------------------------------------------------
+     */
+
     applyAdvancedFiltersBtn?.addEventListener(
         'click',
         applyLeadFilters
@@ -509,7 +581,6 @@
         }
     );
 
-
     advancedStatus?.addEventListener(
         'change',
         function () {
@@ -528,15 +599,22 @@
         }
     );
 
+    listViewBtn?.addEventListener(
+        'click',
+        () => setLeadView('list')
+    );
+
+    compactViewBtn?.addEventListener(
+        'click',
+        () => setLeadView('compact')
+    );
+
     leadList?.addEventListener('change', function (event) {
         if (!event.target.matches('#leadPerPage')) {
             return;
         }
 
-        leadListState.perPage = Number(
-            event.target.value
-        );
-
+        leadListState.perPage = Number(event.target.value);
         leadListState.page = 1;
 
         loadLeads();
@@ -551,9 +629,7 @@
             return;
         }
 
-        const page = Number(
-            paginationButton.dataset.leadPage
-        );
+        const page = Number(paginationButton.dataset.leadPage);
 
         if (!page || page < 1) {
             return;
@@ -564,9 +640,10 @@
         loadLeads();
     });
 
+    /**
+     * Initial lead list load.
+     */
     loadLeads();
-
-
 
     window.openCreateLeadDrawer = openCreateLeadDrawer;
 })();

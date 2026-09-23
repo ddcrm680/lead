@@ -90,10 +90,9 @@
               </div>
             </div>
 
+            <div id="leadList"></div>
+
           </section>
-
-          <div id="leadList"></div>
-
 
         </div>
       </section>

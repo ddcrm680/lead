@@ -185,6 +185,7 @@
                                             type="button"
                                             data-view-lead="{{ $lead->public_id }}"
                                         >
+                                            <i class="bi bi-eye me-2"></i>
                                             View details
                                         </button>
                                     </li>
@@ -195,6 +196,7 @@
                                             type="button"
                                             data-edit-lead="{{ $lead->public_id }}"
                                         >
+                                            <i class="bi bi-pencil-square me-2"></i>
                                             Edit lead
                                         </button>
                                     </li>
@@ -205,7 +207,7 @@
                                                 class="dropdown-item"
                                                 href="tel:{{ $phone->value }}"
                                             >
-                                                <i class="bi bi-telephone"></i>
+                                                <i class="bi bi-telephone me-2"></i>
                                                 Call
                                             </a>
                                         </li>
@@ -217,7 +219,7 @@
                                                 class="dropdown-item"
                                                 href="mailto:{{ $email->value }}"
                                             >
-                                                <i class="bi bi-envelope"></i>
+                                                <i class="bi bi-envelope me-2"></i>
                                                 Email
                                             </a>
                                         </li>
@@ -231,7 +233,7 @@
                                                 rel="noopener"
                                                 href="https://wa.me/{{ preg_replace('/\D/', '', $whatsapp->value) }}"
                                             >
-                                                <i class="bi bi-whatsapp"></i>
+                                                <i class="bi bi-whatsapp me-2"></i>
                                                 WhatsApp
                                             </a>
                                         </li>
@@ -243,6 +245,7 @@
                                             type="button"
                                             data-delete-lead="{{ $lead->public_id }}"
                                         >
+                                            <i class="bi bi-trash me-2"></i>
                                             Delete
                                         </button>
                                     </li>
@@ -256,7 +259,7 @@
     </div>
 
     {{-- Mobile View --}}
-    <div class="mobile-records">
+    <div class="mobile-records compact-grid">
         @foreach ($leads as $lead)
             @php
                 $contacts = $lead->contacts
