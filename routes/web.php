@@ -24,8 +24,6 @@ require __DIR__.'/users.php';
 
 require __DIR__ . '/leads.php';
 
-require __DIR__.'/deploy.php';
-
 Route::get('/permission-test', function () {
     return 'Permission works!';
 })
