@@ -38,7 +38,8 @@
                             <button
                                 class="lead-ident link-reset"
                                 type="button"
-                                data-view-lead="{{ $lead->public_id }}"
+                                data-lead-id="{{ $lead->public_id }}"
+                                data-lead-action="view"
                                 aria-label="View {{ $lead->display_name }}"
                             >
                                 <span class="mini-avatar">
@@ -108,7 +109,6 @@
                             </span>
                         </td>
 
-
                         <td>
                             <span
                                 class="status-badge"
@@ -167,90 +167,46 @@
                         </td>
 
                         <td>
-                            <div class="dropdown">
-                                <button
-                                    class="table-action"
-                                    type="button"
-                                    data-bs-toggle="dropdown"
-                                    aria-expanded="false"
-                                    aria-label="Lead actions"
-                                >
-                                    <i class="bi bi-three-dots"></i>
-                                </button>
-
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <button
-                                            class="dropdown-item"
-                                            type="button"
-                                            data-view-lead="{{ $lead->public_id }}"
-                                        >
-                                            <i class="bi bi-eye me-2"></i>
-                                            View details
-                                        </button>
-                                    </li>
-
-                                    <li>
-                                        <button
-                                            class="dropdown-item"
-                                            type="button"
-                                            data-edit-lead="{{ $lead->public_id }}"
-                                        >
-                                            <i class="bi bi-pencil-square me-2"></i>
-                                            Edit lead
-                                        </button>
-                                    </li>
-
-                                    @if ($phone?->value)
-                                        <li>
-                                            <a
-                                                class="dropdown-item"
-                                                href="tel:{{ $phone->value }}"
-                                            >
-                                                <i class="bi bi-telephone me-2"></i>
-                                                Call
-                                            </a>
-                                        </li>
-                                    @endif
-
-                                    @if ($email?->value)
-                                        <li>
-                                            <a
-                                                class="dropdown-item"
-                                                href="mailto:{{ $email->value }}"
-                                            >
-                                                <i class="bi bi-envelope me-2"></i>
-                                                Email
-                                            </a>
-                                        </li>
-                                    @endif
-
-                                    @if ($whatsapp?->value)
-                                        <li>
-                                            <a
-                                                class="dropdown-item"
-                                                target="_blank"
-                                                rel="noopener"
-                                                href="https://wa.me/{{ preg_replace('/\D/', '', $whatsapp->value) }}"
-                                            >
-                                                <i class="bi bi-whatsapp me-2"></i>
-                                                WhatsApp
-                                            </a>
-                                        </li>
-                                    @endif
-
-                                    <li>
-                                        <button
-                                            class="dropdown-item text-danger"
-                                            type="button"
-                                            data-delete-lead="{{ $lead->public_id }}"
-                                        >
-                                            <i class="bi bi-trash me-2"></i>
-                                            Delete
-                                        </button>
-                                    </li>
-                                </ul>
-                            </div>
+                            <x-action-menu
+                                :id="$lead->public_id"
+                                attribute="lead"
+                                className="table-action"
+                                :actions="[
+                                    [
+                                        'label' => 'View',
+                                        'action' => 'view',
+                                        'icon' => 'eye',
+                                    ],
+                                    [
+                                        'label' => 'Edit',
+                                        'action' => 'edit',
+                                        'icon' => 'pencil-square',
+                                    ],
+                                    ...($phone?->value ? [[
+                                        'label' => 'Call',
+                                        'href' => 'tel:' . $phone->value,
+                                        'icon' => 'telephone',
+                                    ]] : []),
+                                    ...($email?->value ? [[
+                                        'label' => 'Email',
+                                        'href' => 'mailto:' . $email->value,
+                                        'icon' => 'envelope',
+                                    ]] : []),
+                                    ...($whatsapp?->value ? [[
+                                        'label' => 'WhatsApp',
+                                        'href' => 'https://wa.me/' . preg_replace('/\D/', '', $whatsapp->value),
+                                        'icon' => 'whatsapp',
+                                        'target' => '_blank',
+                                        'rel' => 'noopener',
+                                    ]] : []),
+                                    [
+                                        'label' => 'Delete',
+                                        'action' => 'delete',
+                                        'icon' => 'trash',
+                                        'danger' => true,
+                                    ],
+                                ]"
+                            />
                         </td>
                     </tr>
                 @endforeach
@@ -276,12 +232,14 @@
                     ->first();
             @endphp
 
-            <article class="mobile-record">
+            <article class="mobile-record position-relative">
+
                 <div class="mobile-record-head">
                     <button
                         class="lead-ident link-reset"
                         type="button"
-                        data-view-lead="{{ $lead->public_id }}"
+                        data-lead-id="{{ $lead->public_id }}"
+                        data-lead-action="view"
                         aria-label="View {{ $lead->display_name }}"
                     >
                         <span class="mini-avatar">
@@ -314,6 +272,30 @@
                             </small>
                         </span>
                     </button>
+
+                    <x-action-menu
+                        position="top-right"
+                        :id="$lead->public_id"
+                        attribute="lead"
+                        :actions="[
+                            [
+                                'label' => 'View',
+                                'action' => 'view',
+                                'icon' => 'eye',
+                            ],
+                            [
+                                'label' => 'Edit',
+                                'action' => 'edit',
+                                'icon' => 'pencil-square',
+                            ],
+                            [
+                                'label' => 'Delete',
+                                'action' => 'delete',
+                                'icon' => 'trash',
+                                'danger' => true,
+                            ],
+                        ]"
+                    />
                 </div>
 
                 <dl>
@@ -356,7 +338,7 @@
                         </dd>
                     </div>
 
-                     <div>
+                    <div>
                         <dt>Stage</dt>
                         <dd>
                             <span
@@ -441,16 +423,8 @@
                             Email
                         </a>
                     @endif
-
-                    <button
-                        class="btn btn-light"
-                        type="button"
-                        data-edit-lead="{{ $lead->public_id }}"
-                    >
-                        <i class="bi bi-pencil"></i>
-                        Edit
-                    </button>
                 </div>
+
             </article>
         @endforeach
     </div>

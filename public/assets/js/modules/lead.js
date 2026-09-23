@@ -459,6 +459,62 @@
     }
 
     /**
+     * Fetch, inject, and display the Lead Details drawer.
+     */
+    async function openLeadDetails(publicId) {
+        if (!leadsPage || !publicId) {
+            return;
+        }
+
+        const viewUrl = leadsPage.dataset.viewUrl;
+
+        if (!viewUrl) {
+            return;
+        }
+
+        try {
+            const response = await axios.get(
+                viewUrl.replace('__LEAD__', publicId)
+            );
+
+            const existingDrawer = $('#leadDetail');
+
+            if (existingDrawer) {
+                const instance =
+                    bootstrap.Offcanvas.getInstance(existingDrawer);
+
+                instance?.dispose();
+                existingDrawer.remove();
+            }
+
+            document.body.insertAdjacentHTML(
+                'beforeend',
+                response.data.html ?? ''
+            );
+
+            const leadDetailDrawer = $('#leadDetail');
+
+            if (!leadDetailDrawer) {
+                return;
+            }
+
+            bootstrap.Offcanvas
+                .getOrCreateInstance(leadDetailDrawer)
+                .show();
+
+            leadDetailDrawer.addEventListener(
+                'hidden.bs.offcanvas',
+                () => {
+                    leadDetailDrawer.remove();
+                },
+                { once: true }
+            );
+        } catch (error) {
+            handleResponseError(error);
+        }
+    }
+
+    /**
      * Reset pagination and reload leads using the active filters.
      */
     function applyLeadFilters() {
@@ -621,6 +677,25 @@
     });
 
     leadList?.addEventListener('click', function (event) {
+        const actionBtn = event.target.closest(
+            '[data-lead-action]'
+        );
+
+        if (actionBtn) {
+            const leadId = actionBtn.dataset.leadId;
+            const action = actionBtn.dataset.leadAction;
+
+            if (!leadId) {
+                return;
+            }
+
+            //view lead details
+            if (action === 'view') {
+                openLeadDetails(leadId);
+                return;
+            }
+        }
+
         const paginationButton = event.target.closest(
             '[data-lead-page]'
         );

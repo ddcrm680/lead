@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Leads\CreateLead;
 use App\Actions\Leads\ListLeads;
+use App\Actions\Leads\GetLeadDetails;
 use App\Http\Requests\Leads\LeadDataRequest;
 use App\Http\Requests\Leads\StoreLeadRequest;
 use App\Models\Lead;
@@ -182,12 +183,23 @@ class LeadController extends Controller
         ]);
     }
 
+
     /**
-     * Display the specified resource.
+     * Display the specified lead.
      */
-    public function show(string $id)
-    {
-        //
+    public function show(
+        string $id,
+        GetLeadDetails $getLeadDetails,
+    ): JsonResponse {
+        $lead = $getLeadDetails->handle($id);
+
+        return response()->json([
+            'success' => true,
+            'html' => view(
+                'pages.leads.components.lead-details',
+                compact('lead')
+            )->render(),
+        ]);
     }
 
     /**

@@ -29,20 +29,39 @@
             @foreach ($actions as $item)
 
                 <li>
-                    <button
-                        class="dropdown-item{{ !empty($item['danger']) ? ' text-danger' : '' }}{{ !empty($item['className']) ? ' ' . $item['className'] : '' }}"
-                        type="button"
-                        data-{{ $attribute }}-action="{{ $item['action'] ?? '' }}"
-                        @if ($id !== null)
-                            data-{{ $attribute }}-id="{{ $id }}"
-                        @endif
-                    >
-                        @if (!empty($item['icon']))
-                            <i class="bi bi-{{ $item['icon'] }} me-1"></i>
-                        @endif
+                    @if (!empty($item['href']))
+                        <a
+                            class="dropdown-item{{ !empty($item['danger']) ? ' text-danger' : '' }}{{ !empty($item['className']) ? ' ' . $item['className'] : '' }}"
+                            href="{{ $item['href'] }}"
+                            @if (!empty($item['target']))
+                                target="{{ $item['target'] }}"
+                            @endif
+                            @if (!empty($item['rel']))
+                                rel="{{ $item['rel'] }}"
+                            @endif
+                        >
+                            @if (!empty($item['icon']))
+                                <i class="bi bi-{{ $item['icon'] }} me-1"></i>
+                            @endif
 
-                        {{ $item['label'] ?? '' }}
-                    </button>
+                            {{ $item['label'] ?? '' }}
+                        </a>
+                    @else
+                        <button
+                            class="dropdown-item{{ !empty($item['danger']) ? ' text-danger' : '' }}{{ !empty($item['className']) ? ' ' . $item['className'] : '' }}"
+                            type="button"
+                            data-{{ $attribute }}-action="{{ $item['action'] ?? '' }}"
+                            @if ($id !== null)
+                                data-{{ $attribute }}-id="{{ $id }}"
+                            @endif
+                        >
+                            @if (!empty($item['icon']))
+                                <i class="bi bi-{{ $item['icon'] }} me-1"></i>
+                            @endif
+
+                            {{ $item['label'] ?? '' }}
+                        </button>
+                    @endif
                 </li>
 
             @endforeach

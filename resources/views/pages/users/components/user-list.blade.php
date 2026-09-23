@@ -13,7 +13,7 @@
 
 
                  <x-action-menu
-                    position="top-right"
+                    position="middle-right"
                     :id="$user->id"
                     attribute="user"
                     post
