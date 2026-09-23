@@ -1177,10 +1177,14 @@
     populateSelect("exportSource", sources);
     populateSelect("exportAgent", agents);
     populateSelect("advancedAgent", agents);
-    $("newStudio").innerHTML =
-        `<option value="">Select preferred studio</option>${studios.map((s) => `<option>${s.name}</option>`).join("")}`;
-    $("newAssignee").innerHTML =
-        `<option value="auto">Auto assign</option>${agents.map((a) => `<option>${a}</option>`).join("")}`;
+    if ($("newStudio")) {
+        $("newStudio").innerHTML =
+            `<option value="">Select preferred studio</option>${studios.map((s) => `<option>${s.name}</option>`).join("")}`;
+    }
+    if ($("newAssignee")) {
+        $("newAssignee").innerHTML =
+            `<option value="auto">Auto assign</option>${agents.map((a) => `<option>${a}</option>`).join("")}`;
+    }
     $("statusChips").innerHTML = ["All", "Hot", "Warm", "Cold", "New"]
         .map(
             (f) =>
@@ -1190,7 +1194,9 @@
     renderNotifications();
     renderImport();
     renderExport();
-    resetLeadDrawer();
+    if ($("leadForm")) {
+        resetLeadDrawer();
+    }
 }
 
     // Navigation and shell
@@ -1278,29 +1284,33 @@
         leadPage = Number(b.dataset.leadPage);
         renderLeads();
     });
-    $("advancedScore").addEventListener(
-        "input",
-        () => ($("advancedScoreLabel").textContent = `${$("advancedScore").value}+`)
-    );
-    $("applyAdvancedFilters").addEventListener("click", () => {
-        advancedFilters = {
-            city: $("advancedCity").value.trim(),
-            agent: $("advancedAgent").value,
-            score: $("advancedScore").value,
-            date: $("advancedDate").value,
-        };
-        leadPage = 1;
-        renderLeads();
-        renderPriority();
-    });
-    $("resetAdvancedFilters").addEventListener("click", () => {
-        ["advancedCity", "advancedAgent", "advancedDate"].forEach((id) => ($(id).value = ""));
-        $("advancedScore").value = 0;
-        $("advancedScoreLabel").textContent = "0+";
-        advancedFilters = { city: "", agent: "", score: 0, date: "" };
-        renderLeads();
-        renderPriority();
-    });
+    if ($("advancedScore")) {
+        $("advancedScore").addEventListener(
+            "input",
+            () => ($("advancedScoreLabel").textContent = `${$("advancedScore").value}+`)
+        );
+        $("applyAdvancedFilters")?.addEventListener("click", () => {
+            advancedFilters = {
+                city: $("advancedCity") ? $("advancedCity").value.trim() : "",
+                agent: $("advancedAgent") ? $("advancedAgent").value : "",
+                score: $("advancedScore") ? $("advancedScore").value : 0,
+                date: $("advancedDate") ? $("advancedDate").value : "",
+            };
+            leadPage = 1;
+            renderLeads();
+            renderPriority();
+        });
+        $("resetAdvancedFilters")?.addEventListener("click", () => {
+            ["advancedCity", "advancedAgent", "advancedDate"].forEach((id) => {
+                if ($(id)) $(id).value = "";
+            });
+            if ($("advancedScore")) $("advancedScore").value = 0;
+            if ($("advancedScoreLabel")) $("advancedScoreLabel").textContent = "0+";
+            advancedFilters = { city: "", agent: "", score: 0, date: "" };
+            renderLeads();
+            renderPriority();
+        });
+    }
 
     // Delegated lead actions
     document.addEventListener("click", async (e) => {
@@ -1354,67 +1364,69 @@
     });
 
     // Lead form
-    ["newName", "newCity", "newEmail", "newSource", "newInterest", "newBudget", "newTimeline"].forEach((id) =>
-        $(id).addEventListener(
-            id.startsWith("new") && ["newSource", "newInterest", "newBudget", "newTimeline"].includes(id)
-                ? "change"
-                : "input",
-            updateLeadPreview
-        )
-    );
-    $("addLead").addEventListener("show.bs.offcanvas", () => {
-        if (openingEditDrawer) {
-            openingEditDrawer = false;
-            return;
-        }
-        resetLeadDrawer();
-    });
-    $("leadForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const data = getLeadFormData();
-        if (!validateLeadForm(data)) return;
-        const button = $("leadSubmitBtn");
-        button.disabled = true;
-        $("leadSubmitText").textContent = $("editLeadId").value ? "Saving…" : "Creating…";
-        await new Promise((resolve) => setTimeout(resolve, 450));
-        const score = calculateScore(data),
-            temperature = score >= 80 ? "Hot" : score >= 60 ? "Warm" : "Cold",
-            agent = data.assignee === "auto" ? autoAssign(data.city) : data.assignee;
-        if ($("editLeadId").value) {
-            const l = getLead($("editLeadId").value);
-            Object.assign(l, data, { agent, score, temperature, updatedAt: new Date().toISOString() });
-            l.activities.unshift({ type: "Lead Updated", at: l.updatedAt, text: "Lead details updated." });
-            toast("Lead updated", `${l.name} was updated successfully.`);
-        } else {
-            const now = new Date();
-            const id = `DDL-26${String(Math.max(0, ...leads.map((l) => Number(l.id.replace(/\D/g, "").slice(-4)))) + 1).padStart(4, "0")}`;
-            const l = {
-                id,
-                ...data,
-                agent,
-                score,
-                temperature,
-                status: "New",
-                createdAt: now.toISOString(),
-                updatedAt: now.toISOString(),
-                lastContact: now.toISOString(),
-                nextFollowup: new Date(now.getTime() + 4 * 3600000).toISOString(),
-                notes: "New lead created from CRM.",
-                activities: [
-                    { type: "Lead Created", at: now.toISOString(), text: `Lead created from ${data.source}.` },
-                    { type: "Assigned", at: now.toISOString(), text: `Assigned to ${agent}.` },
-                ],
-            };
-            leads.unshift(l);
-            toast("Lead created", `${l.name} was assigned to ${agent}.`);
-        }
-        saveLeads();
-        bootstrap.Offcanvas.getInstance($("addLead")).hide();
-        button.disabled = false;
-        $("leadSubmitText").textContent = "Create lead";
-        renderPage(currentPage);
-        renderDashboard();
-    });
+    if ($("leadForm")) {
+        ["newName", "newCity", "newEmail", "newSource", "newInterest", "newBudget", "newTimeline"].forEach((id) =>
+            $(id)?.addEventListener(
+                id.startsWith("new") && ["newSource", "newInterest", "newBudget", "newTimeline"].includes(id)
+                    ? "change"
+                    : "input",
+                updateLeadPreview
+            )
+        );
+        $("addLead")?.addEventListener("show.bs.offcanvas", () => {
+            if (openingEditDrawer) {
+                openingEditDrawer = false;
+                return;
+            }
+            resetLeadDrawer();
+        });
+        $("leadForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const data = getLeadFormData();
+            if (!validateLeadForm(data)) return;
+            const button = $("leadSubmitBtn");
+            button.disabled = true;
+            $("leadSubmitText").textContent = $("editLeadId").value ? "Saving…" : "Creating…";
+            await new Promise((resolve) => setTimeout(resolve, 450));
+            const score = calculateScore(data),
+                temperature = score >= 80 ? "Hot" : score >= 60 ? "Warm" : "Cold",
+                agent = data.assignee === "auto" ? autoAssign(data.city) : data.assignee;
+            if ($("editLeadId").value) {
+                const l = getLead($("editLeadId").value);
+                Object.assign(l, data, { agent, score, temperature, updatedAt: new Date().toISOString() });
+                l.activities.unshift({ type: "Lead Updated", at: l.updatedAt, text: "Lead details updated." });
+                toast("Lead updated", `${l.name} was updated successfully.`);
+            } else {
+                const now = new Date();
+                const id = `DDL-26${String(Math.max(0, ...leads.map((l) => Number(l.id.replace(/\D/g, "").slice(-4)))) + 1).padStart(4, "0")}`;
+                const l = {
+                    id,
+                    ...data,
+                    agent,
+                    score,
+                    temperature,
+                    status: "New",
+                    createdAt: now.toISOString(),
+                    updatedAt: now.toISOString(),
+                    lastContact: now.toISOString(),
+                    nextFollowup: new Date(now.getTime() + 4 * 3600000).toISOString(),
+                    notes: "New lead created from CRM.",
+                    activities: [
+                        { type: "Lead Created", at: now.toISOString(), text: `Lead created from ${data.source}.` },
+                        { type: "Assigned", at: now.toISOString(), text: `Assigned to ${agent}.` },
+                    ],
+                };
+                leads.unshift(l);
+                toast("Lead created", `${l.name} was assigned to ${agent}.`);
+            }
+            saveLeads();
+            bootstrap.Offcanvas.getInstance($("addLead"))?.hide();
+            button.disabled = false;
+            $("leadSubmitText").textContent = "Create lead";
+            renderPage(currentPage);
+            renderDashboard();
+        });
+    }
 
     // Follow-ups and tasks
     $$("#followupPageTabs button").forEach((b) =>
