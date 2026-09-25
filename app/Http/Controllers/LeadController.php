@@ -6,9 +6,12 @@ use App\Actions\Leads\CreateLead;
 use App\Actions\Leads\UpdateLead;
 use App\Actions\Leads\ListLeads;
 use App\Actions\Leads\GetLeadDetails;
+use App\Actions\Leads\CreateLeadFollowUp;
+
 use App\Http\Requests\Leads\LeadDataRequest;
 use App\Http\Requests\Leads\StoreLeadRequest;
 use App\Http\Requests\Leads\UpdateLeadRequest;
+use App\Http\Requests\Leads\StoreLeadFollowUpRequest;
 use App\Models\Lead;
 use App\Enums\LeadPriority;
 use App\Models\LeadSource;
@@ -293,6 +296,84 @@ class LeadController extends Controller
             'message' => "{$updatedLead->display_name} has been updated successfully.",
             'data' => [
                 'public_id' => $updatedLead->public_id,
+            ],
+        ]);
+    }
+
+    /**
+     * Show the form for scheduling a follow-up.
+     */
+    public function createFollowUp(string $id): JsonResponse
+    {
+        $lead = Lead::query()
+            ->where('public_id', $id)
+            ->with([
+                'status',
+                'pipelineStage',
+                'assignedUser',
+                'contacts',
+            ])
+            ->firstOrFail();
+
+        $followUpTypes = LeadFollowUpType::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['id', 'name']);
+
+        $followUpStatuses = LeadFollowUpStatus::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get([
+                'id',
+                'name',
+                'is_open',
+                'is_completed',
+                'is_cancelled',
+            ]);
+
+        $users = User::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return response()->json([
+            'success' => true,
+            'html' => view(
+                'pages.leads.components.add-follow-up',
+                compact(
+                    'lead',
+                    'followUpTypes',
+                    'followUpStatuses',
+                    'users',
+                )
+            )->render(),
+        ]);
+    }
+
+    /**
+     * Store a follow-up for the specified lead.
+     */
+    public function storeFollowUp(
+        StoreLeadFollowUpRequest $request,
+        string $id,
+        CreateLeadFollowUp $createLeadFollowUp,
+    ): JsonResponse {
+        $lead = Lead::query()
+            ->where('public_id', $id)
+            ->firstOrFail();
+
+        $followUp = $createLeadFollowUp->handle(
+            $lead,
+            $request->validated(),
+            auth()->id(),
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Follow-up scheduled successfully.',
+            'data' => [
+                'id' => $followUp->id,
+                'lead_public_id' => $lead->public_id,
             ],
         ]);
     }

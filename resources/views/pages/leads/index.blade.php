@@ -18,6 +18,7 @@
       data-create-url="{{ route('createLead') }}"
       data-view-url="{{ route('viewLead', ['lead' => '__LEAD__']) }}"
       data-edit-url="{{ route('editLead', ['lead' => '__LEAD__']) }}"
+      data-follow-up-create-url="{{ route('createLeadFollowUp', ['lead' => '__LEAD__']) }}"
       >
 
         <div class="page-stack">

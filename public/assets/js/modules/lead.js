@@ -157,6 +157,58 @@
     }
 
     /**
+     * Fetch, inject, and display the Add Lead Follow-up drawer.
+     */
+    async function openLeadFollowUpDrawer(leadId) {
+        if (!leadId) {
+            return;
+        }
+
+        const createUrlTemplate = leadsPage?.dataset.followUpCreateUrl;
+
+        if (!createUrlTemplate) {
+            return;
+        }
+
+        const createUrl = createUrlTemplate.replace('__LEAD__', leadId);
+
+        try {
+            const existingDrawer = $('#addLeadFollowUp');
+
+            if (existingDrawer) {
+                const instance = bootstrap.Offcanvas.getInstance(existingDrawer);
+                instance?.dispose();
+                existingDrawer.remove();
+            }
+
+            const response = await axios.get(createUrl);
+
+            document.body.insertAdjacentHTML(
+                'beforeend',
+                response.data.html ?? ''
+            );
+
+            const followUpDrawer = $('#addLeadFollowUp');
+
+            if (!followUpDrawer) {
+                return;
+            }
+
+            bootstrap.Offcanvas
+                .getOrCreateInstance(followUpDrawer)
+                .show();
+
+            followUpDrawer.addEventListener(
+                'hidden.bs.offcanvas',
+                () => followUpDrawer.remove(),
+                { once: true }
+            );
+        } catch (error) {
+            handleResponseError(error);
+        }
+    }
+
+    /**
      * Generate and append a new contact row to the specified container.
      */
     function addContactRow({ container, index, primaryIdPrefix = 'primaryContact' }) {
@@ -250,10 +302,12 @@
                     openEditLeadDrawer(leadId);
                     break;
 
+                case 'follow-up':
+                    openLeadFollowUpDrawer(leadId);
+                    break;
+
                 case 'delete':
                 case 'tag':
-                case 'follow-up':
-                    // Placeholders for future lead actions
                     break;
 
                 default:
@@ -431,6 +485,53 @@
             );
         } finally {
             hideLoader(leadSubmitBtn);
+        }
+    });
+
+    /**
+     * Submit the Add Follow-up form.
+     */
+    document.addEventListener('submit', async function (event) {
+        if (event.target.id !== 'addLeadFollowUpForm') {
+            return;
+        }
+
+        event.preventDefault();
+
+        const form = event.target;
+        const submitBtn = $('#leadFollowUpSubmitBtn', form.closest('.offcanvas') || document) || $('#leadFollowUpSubmitBtn');
+        const leadId = form.dataset.leadId;
+
+        resetValidationErrors(form);
+        showLoader(submitBtn, 'Saving...');
+
+        try {
+            const response = await axios.post(
+                form.action,
+                new FormData(form)
+            );
+
+            handleResponseSuccess(response.data);
+
+            const drawer = $('#addLeadFollowUp');
+
+            if (drawer) {
+                bootstrap.Offcanvas
+                    .getOrCreateInstance(drawer)
+                    .hide();
+            }
+
+            await loadLeads();
+
+            // Refresh Lead Details drawer if open
+            const leadDetailDrawer = $('#leadDetail');
+            if (leadDetailDrawer && bootstrap.Offcanvas.getInstance(leadDetailDrawer)?._isShown && leadId) {
+                await openLeadDetails(leadId);
+            }
+        } catch (error) {
+            handleResponseError(error, form);
+        } finally {
+            hideLoader(submitBtn);
         }
     });
 

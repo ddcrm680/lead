@@ -1,14 +1,3 @@
-  <div class="offcanvas offcanvas-end detail-drawer" tabindex="-1" id="leadDetail" aria-labelledby="leadDetailTitle">
-    <div class="offcanvas-header detail-head">
-      <div>
-        <span class="eyebrow">LEAD PROFILE</span>
-        <h2 id="leadDetailTitle">Lead details</h2>
-        <p id="leadDetailSubtitle"></p>
-      </div>
-      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-    </div>
-    <div class="offcanvas-body" id="leadDetailBody"></div>
-  </div>
 
   <div class="offcanvas offcanvas-end notification-drawer" tabindex="-1" id="notificationDrawer" aria-labelledby="notificationDrawerTitle">
     <div class="offcanvas-header">

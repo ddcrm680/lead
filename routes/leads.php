@@ -34,6 +34,14 @@ Route::prefix('leads')->middleware('auth')->group(function () {
         ->middleware('permission:leads.update')
         ->name('updateLead');
 
+    Route::get('/{lead}/follow-ups/create', [LeadController::class, 'createFollowUp'])
+        ->middleware('permission:leads.update')
+        ->name('createLeadFollowUp');
+
+    Route::post('/{lead}/follow-ups', [LeadController::class, 'storeFollowUp'])
+        ->middleware('permission:leads.update')
+        ->name('storeLeadFollowUp');
+
 
     Route::patch('/{lead}/status', [LeadController::class, 'toggleStatus'])
         ->middleware('permission:leads.toggle-status')

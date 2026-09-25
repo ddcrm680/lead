@@ -177,11 +177,18 @@
                                         'action' => 'view',
                                         'icon' => 'eye',
                                     ],
-                                    ...(auth()->user()?->hasPermission('leads.update') ? [[
-                                        'label' => 'Edit',
-                                        'action' => 'edit',
-                                        'icon' => 'pencil-square',
-                                    ]] : []),
+                                    ...(auth()->user()?->hasPermission('leads.update') ? [
+                                        [
+                                            'label' => 'Edit',
+                                            'action' => 'edit',
+                                            'icon' => 'pencil-square',
+                                        ],
+                                        [
+                                            'label' => 'Add follow-up',
+                                            'action' => 'follow-up',
+                                            'icon' => 'calendar-plus',
+                                        ],
+                                    ] : []),
                                     ...($phone?->value ? [[
                                         'label' => 'Call',
                                         'href' => 'tel:' . $phone->value,
@@ -283,11 +290,18 @@
                                 'action' => 'view',
                                 'icon' => 'eye',
                             ],
-                            [
-                                'label' => 'Edit',
-                                'action' => 'edit',
-                                'icon' => 'pencil-square',
-                            ],
+                            ...(auth()->user()?->hasPermission('leads.update') ? [
+                                [
+                                    'label' => 'Edit',
+                                    'action' => 'edit',
+                                    'icon' => 'pencil-square',
+                                ],
+                                [
+                                    'label' => 'Add follow-up',
+                                    'action' => 'follow-up',
+                                    'icon' => 'calendar-plus',
+                                ],
+                            ] : []),
                             [
                                 'label' => 'Delete',
                                 'action' => 'delete',
