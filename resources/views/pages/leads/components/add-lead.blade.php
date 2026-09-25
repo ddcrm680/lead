@@ -13,11 +13,23 @@
             {{-- 1. Contact Information --}}
             <div class="form-section">
                 <h3><span>1</span> Contact information</h3>
-                <label class="w-100 mb-3">
-                    Full name *
-                    <input type="text" class="form-control mt-1" id="leadDisplayName" name="display_name" required autocomplete="name" maxlength="255" placeholder="e.g. Rahul Mehra">
+
+                <div class="mb-3">
+                    <label class="form-label mb-1" for="leadDisplayName">
+                        Full name *
+                    </label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="leadDisplayName"
+                        name="display_name"
+                        required
+                        autocomplete="name"
+                        maxlength="255"
+                        placeholder="e.g. Rahul Mehra"
+                    >
                     <span class="invalid-feedback" data-error-for="display_name"></span>
-                </label>
+                </div>
 
                 <div id="leadContacts" class="d-flex flex-column gap-2">
                     <div class="row g-2 align-items-end lead-contact-row" data-contact-row>
@@ -34,13 +46,29 @@
 
                         <div class="col-5">
                             <label class="form-label small mb-1">Contact value *</label>
-                            <input type="text" class="form-control" name="contacts[0][value]" data-contact-value required maxlength="255" placeholder="e.g. Enter Value">
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="contacts[0][value]"
+                                data-contact-value
+                                required
+                                maxlength="255"
+                                placeholder="e.g. Enter Value"
+                            >
                             <span class="invalid-feedback" data-error-for="contacts.0.value"></span>
                         </div>
 
                         <div class="col-2 pb-2">
                             <div class="form-check m-0">
-                                <input class="form-check-input" type="checkbox" name="contacts[0][is_primary]" value="1" id="primaryContact0" data-contact-primary checked>
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    name="contacts[0][is_primary]"
+                                    value="1"
+                                    id="primaryContact0"
+                                    data-contact-primary
+                                    checked
+                                >
                                 <label class="form-check-label small" for="primaryContact0">Primary</label>
                             </div>
                         </div>
@@ -61,9 +89,10 @@
             {{-- 2. Lead Information --}}
             <div class="form-section">
                 <h3><span>2</span> Lead information</h3>
-                <div class="form-row">
-                    <label>
-                        Lead source
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label mb-1" for="leadSource">Lead source</label>
                         <select class="form-select" id="leadSource" name="source_id">
                             <option value="">Select source</option>
                             @foreach($sources as $source)
@@ -71,10 +100,10 @@
                             @endforeach
                         </select>
                         <span class="invalid-feedback" data-error-for="source_id"></span>
-                    </label>
+                    </div>
 
-                    <label>
-                        Status *
+                    <div class="col-md-6">
+                        <label class="form-label mb-1" for="leadStatus">Status *</label>
                         <select class="form-select" id="leadStatus" name="status_id" required>
                             <option value="">Select status</option>
                             @foreach($statuses as $status)
@@ -82,12 +111,10 @@
                             @endforeach
                         </select>
                         <span class="invalid-feedback" data-error-for="status_id"></span>
-                    </label>
-                </div>
+                    </div>
 
-                <div class="form-row">
-                    <label>
-                        Stage
+                    <div class="col-md-6">
+                        <label class="form-label mb-1" for="leadPipelineStage">Stage</label>
                         <select class="form-select" id="leadPipelineStage" name="pipeline_stage_id">
                             <option value="">Select stage</option>
                             @foreach($pipelines as $pipeline)
@@ -101,10 +128,10 @@
                             @endforeach
                         </select>
                         <span class="invalid-feedback" data-error-for="pipeline_stage_id"></span>
-                    </label>
+                    </div>
 
-                    <label>
-                        Priority
+                    <div class="col-md-6">
+                        <label class="form-label mb-1" for="leadPriority">Priority</label>
                         <select class="form-select" id="leadPriority" name="priority">
                             <option value="">Default</option>
                             <option value="10">Low</option>
@@ -112,35 +139,56 @@
                             <option value="30">High</option>
                         </select>
                         <span class="invalid-feedback" data-error-for="priority"></span>
-                    </label>
-                </div>
+                    </div>
 
-                {{-- Location Details: City, State, Country --}}
-                <div class="form-row" style="display: flex; gap: 12px; align-items: flex-start;">
-                    <label style="flex: 1; margin: 0;">
-                        City
-                        <input type="text" class="form-control" id="leadCity" name="city" maxlength="150" autocomplete="address-level2" placeholder="e.g. New Delhi">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1" for="leadCity">City</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="leadCity"
+                            name="city"
+                            maxlength="150"
+                            autocomplete="address-level2"
+                            placeholder="e.g. New Delhi"
+                        >
                         <span class="invalid-feedback" data-error-for="city"></span>
-                    </label>
+                    </div>
 
-                    <label style="flex: 1; margin: 0;">
-                        State
-                        <input type="text" class="form-control" id="leadState" name="state" maxlength="100" autocomplete="address-level1" placeholder="e.g. Delhi">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1" for="leadState">State</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="leadState"
+                            name="state"
+                            maxlength="100"
+                            autocomplete="address-level1"
+                            placeholder="e.g. Delhi"
+                        >
                         <span class="invalid-feedback" data-error-for="state"></span>
-                    </label>
+                    </div>
 
-                    <label style="flex: 1; margin: 0;">
-                        Country
-                        <input type="text" class="form-control" id="leadCountry" name="country" maxlength="100" autocomplete="country-name" placeholder="e.g. India">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1" for="leadCountry">Country</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="leadCountry"
+                            name="country"
+                            maxlength="100"
+                            autocomplete="country-name"
+                            placeholder="e.g. India"
+                        >
                         <span class="invalid-feedback" data-error-for="country"></span>
-                    </label>
+                    </div>
                 </div>
             </div>
 
             {{-- 3. Smart Assignment --}}
             <div class="form-section">
                 <h3><span>3</span> Smart assignment</h3>
-                <div class="assignment d-flex align-items-center justify-content-between p-3 rounded-3" style="background-color: #fff5f5; border: 1px solid #ffe3e3;">
+                <div class="assignment d-flex align-items-center justify-content-between p-3 rounded-3 flex-wrap gap-3" style="background-color: #fff5f5; border: 1px solid #ffe3e3;">
                     <div class="d-flex align-items-center gap-3">
                         <i class="bi bi-magic fs-4 text-danger"></i>
                         <div>
@@ -164,7 +212,7 @@
             @if(!empty($fieldDefinitions) && count($fieldDefinitions) > 0)
                 <div class="form-section" id="leadDynamicFieldsSection">
                     <h3><span>4</span> Additional information</h3>
-                    <div class="form-row" style="display: flex; flex-wrap: wrap; gap: 12px;">
+                    <div class="row g-3">
                         @foreach($fieldDefinitions as $field)
                             @php
                                 $fieldKey = $field->key ?? $field->name;
@@ -174,7 +222,7 @@
                                 $options = is_array($field->options) ? $field->options : json_decode($field->options ?? '[]', true);
                             @endphp
 
-                            <div style="flex: 1; min-width: 220px; margin-bottom: 0.75rem;">
+                            <div class="col-md-6">
                                 <label class="form-label mb-1">
                                     {{ $fieldLabel }}{{ $isRequired ? ' *' : '' }}
                                 </label>
@@ -209,15 +257,15 @@
             {{-- 5. Tags --}}
             <div class="form-section">
                 <h3><span>5</span> Tags</h3>
-                <label class="w-100">
-                    Lead tags
+                <div>
+                    <label class="form-label mb-1" for="leadTags">Lead tags</label>
                     <select id="leadTags" name="tags[]" multiple placeholder="Select or type tags..." autocomplete="off">
                         @foreach($tags as $tag)
                             <option value="{{ $tag->name }}">{{ $tag->name }}</option>
                         @endforeach
                     </select>
                     <span class="invalid-feedback" data-error-for="tags"></span>
-                </label>
+                </div>
             </div>
         </form>
     </div>

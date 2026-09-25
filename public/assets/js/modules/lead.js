@@ -397,7 +397,7 @@
         event.preventDefault();
 
         const addLeadForm = event.target;
-        const leadSubmitBtn = $('#leadSubmitBtn', addLeadForm);
+        const leadSubmitBtn = $('#leadSubmitBtn', addLeadForm.closest('.offcanvas') || document) || $('#leadSubmitBtn');
 
         resetValidationErrors(addLeadForm);
         showLoader(leadSubmitBtn, 'Saving...');
@@ -443,7 +443,7 @@
         event.preventDefault();
 
         const editLeadForm = event.target;
-        const leadSubmitBtn = $('#editLeadSubmitBtn', editLeadForm);
+        const leadSubmitBtn = $('#editLeadSubmitBtn', editLeadForm.closest('.offcanvas') || document) || $('#editLeadSubmitBtn');
         const leadId = editLeadForm.dataset.leadId;
 
         resetValidationErrors(editLeadForm);

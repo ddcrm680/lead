@@ -1,18 +1,18 @@
 @if ($leads->count())
     {{-- Desktop / Table View --}}
     <div class="table-responsive table-desktop">
-        <table class="crm-table">
+        <table class="crm-table leads-table">
             <thead>
                 <tr>
-                    <th>Lead</th>
+                    <th style="min-width: 230px;">Lead</th>
                     <th>City</th>
                     <th>Status</th>
                     <th>Stage</th>
                     <th>Source</th>
                     <th>Assigned to</th>
                     <th>Priority</th>
-                    <th>Next follow-up</th>
-                    <th></th>
+                    <th style="min-width: 170px;">Next follow-up</th>
+                    <th style="width: 50px; text-align: center;"></th>
                 </tr>
             </thead>
 
@@ -31,6 +31,13 @@
                             ->whereNull('completed_at')
                             ->sortBy('due_at')
                             ->first();
+
+                        $initials = collect(explode(' ', trim($lead->display_name)))
+                            ->filter()
+                            ->take(2)
+                            ->map(fn ($part) => mb_substr($part, 0, 1))
+                            ->implode('');
+                        $initials = $initials ?: 'L';
                     @endphp
 
                     <tr>
@@ -43,51 +50,45 @@
                                 aria-label="View {{ $lead->display_name }}"
                             >
                                 <span class="mini-avatar">
-                                    {{ collect(explode(' ', trim($lead->display_name)))
-                                        ->filter()
-                                        ->take(2)
-                                        ->map(fn ($part) => mb_substr($part, 0, 1))
-                                        ->implode('') }}
+                                    {{ $initials }}
                                 </span>
 
-                                <span>
-                                    <strong>{{ $lead->display_name }}</strong>
+                                <span class="lead-ident-info">
+                                    <strong class="lead-ident-name">{{ $lead->display_name }}</strong>
 
                                     <small class="lead-contact">
                                         @if ($phone?->value)
-                                            <i class="bi bi-telephone"></i>
-                                            {{ $phone->value }}
-
-                                            @if ($phone->is_primary)
-                                                <i class="bi bi-star-fill" title="Primary"></i>
-                                            @endif
+                                            <span class="contact-pill-mini">
+                                                <i class="bi bi-telephone"></i>
+                                                {{ $phone->value }}
+                                                @if ($phone->is_primary)
+                                                    <i class="bi bi-star-fill text-warning" title="Primary"></i>
+                                                @endif
+                                            </span>
                                         @endif
 
                                         @if ($email?->value)
-                                            @if ($phone?->value)
-                                                |
-                                            @endif
-
-                                            <i class="bi bi-envelope"></i>
-                                            {{ $email->value }}
-
-                                            @if ($email->is_primary)
-                                                <i class="bi bi-star-fill" title="Primary"></i>
-                                            @endif
+                                            <span class="contact-pill-mini text-truncate" style="max-width: 170px;">
+                                                <i class="bi bi-envelope"></i>
+                                                {{ $email->value }}
+                                                @if ($email->is_primary)
+                                                    <i class="bi bi-star-fill text-warning" title="Primary"></i>
+                                                @endif
+                                            </span>
                                         @endif
 
-                                        @if ($whatsapp?->value)
-                                            <br>
-                                            <i class="bi bi-whatsapp"></i>
-                                            {{ $whatsapp->value }}
-
-                                            @if ($whatsapp->is_primary)
-                                                <i class="bi bi-star-fill" title="Primary"></i>
-                                            @endif
+                                        @if ($whatsapp?->value && !$phone?->value)
+                                            <span class="contact-pill-mini">
+                                                <i class="bi bi-whatsapp"></i>
+                                                {{ $whatsapp->value }}
+                                                @if ($whatsapp->is_primary)
+                                                    <i class="bi bi-star-fill text-warning" title="Primary"></i>
+                                                @endif
+                                            </span>
                                         @endif
 
                                         @if (!$phone?->value && !$email?->value && !$whatsapp?->value)
-                                            —
+                                            <span class="text-muted">—</span>
                                         @endif
                                     </small>
                                 </span>
@@ -95,7 +96,13 @@
                         </td>
 
                         <td>
-                            {{ $lead->city ?? '—' }}
+                            @if ($lead->city)
+                                <span class="lead-city-text">
+                                    <i class="bi bi-geo-alt text-muted me-1"></i>{{ $lead->city }}
+                                </span>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
                         </td>
 
                         <td>
@@ -121,7 +128,9 @@
                         </td>
 
                         <td>
-                            {{ $lead->source?->name ?? '—' }}
+                            <span class="lead-source-text">
+                                {{ $lead->source?->name ?? '—' }}
+                            </span>
                         </td>
 
                         <td>
@@ -134,39 +143,46 @@
                                             ->map(fn ($part) => mb_substr($part, 0, 1))
                                             ->implode('') }}
                                     </span>
-
-                                    {{ $lead->assignedUser->name }}
+                                    <span>{{ $lead->assignedUser->name }}</span>
                                 </span>
                             @else
-                                Unassigned
+                                <span class="text-muted small">Unassigned</span>
                             @endif
                         </td>
 
                         <td>
-                            {{ $lead->priority?->name ?? '—' }}
+                            @if ($lead->priority?->name)
+                                <span class="badge bg-light text-secondary border">
+                                    {{ $lead->priority->name }}
+                                </span>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
                         </td>
 
                         <td>
                             @if ($nextFollowUp)
-                                <strong>
-                                    {{ $nextFollowUp->due_at?->format('d M, h:i a') ?? '—' }}
-                                </strong>
+                                <div class="lead-table-followup">
+                                    <strong class="d-block text-dark">
+                                        <i class="bi bi-calendar3 text-danger me-1"></i>
+                                        {{ $nextFollowUp->due_at?->format('d M, h:i a') ?? '—' }}
+                                    </strong>
 
-                                @if ($nextFollowUp->type?->name || $nextFollowUp->status?->name)
-                                    <small class="d-block">
-                                        {{ $nextFollowUp->type?->name ?? '—' }}
-
-                                        @if ($nextFollowUp->status?->name)
-                                            · {{ $nextFollowUp->status->name }}
-                                        @endif
-                                    </small>
-                                @endif
+                                    @if ($nextFollowUp->type?->name || $nextFollowUp->status?->name)
+                                        <small class="text-muted d-block">
+                                            {{ $nextFollowUp->type?->name ?? '—' }}
+                                            @if ($nextFollowUp->status?->name)
+                                                · {{ $nextFollowUp->status->name }}
+                                            @endif
+                                        </small>
+                                    @endif
+                                </div>
                             @else
-                                —
+                                <span class="text-muted">—</span>
                             @endif
                         </td>
 
-                        <td>
+                        <td class="text-center">
                             <x-action-menu
                                 :id="$lead->public_id"
                                 attribute="lead"
@@ -221,8 +237,8 @@
         </table>
     </div>
 
-    {{-- Mobile View --}}
-    <div class="mobile-records compact-grid">
+    {{-- Mobile / Compact Card View --}}
+    <div class="mobile-records compact-grid leads-compact-grid">
         @foreach ($leads as $lead)
             @php
                 $contacts = $lead->contacts
@@ -237,11 +253,19 @@
                     ->whereNull('completed_at')
                     ->sortBy('due_at')
                     ->first();
+
+                $initials = collect(explode(' ', trim($lead->display_name)))
+                    ->filter()
+                    ->take(2)
+                    ->map(fn ($part) => mb_substr($part, 0, 1))
+                    ->implode('');
+                $initials = $initials ?: 'L';
             @endphp
 
-            <article class="mobile-record position-relative">
+            <article class="mobile-record leads-card position-relative">
 
-                <div class="mobile-record-head">
+                {{-- Card Header: Avatar, Name, Primary Contact & Actions --}}
+                <div class="leads-card-header d-flex align-items-start justify-content-between gap-2">
                     <button
                         class="lead-ident link-reset"
                         type="button"
@@ -250,31 +274,39 @@
                         aria-label="View {{ $lead->display_name }}"
                     >
                         <span class="mini-avatar">
-                            {{ collect(explode(' ', trim($lead->display_name)))
-                                ->filter()
-                                ->take(2)
-                                ->map(fn ($part) => mb_substr($part, 0, 1))
-                                ->implode('') }}
+                            {{ $initials }}
                         </span>
 
-                        <span>
+                        <span class="lead-ident-info">
                             <strong>{{ $lead->display_name }}</strong>
 
                             <small class="lead-contact">
                                 @if ($phone?->value)
-                                    <i class="bi bi-telephone"></i>
-                                    {{ $phone->value }}
-
-                                    @if ($phone->is_primary)
-                                        <i class="bi bi-star-fill" title="Primary"></i>
-                                    @endif
+                                    <span class="contact-pill-mini">
+                                        <i class="bi bi-telephone"></i>
+                                        {{ $phone->value }}
+                                        @if ($phone->is_primary)
+                                            <i class="bi bi-star-fill text-warning" title="Primary"></i>
+                                        @endif
+                                    </span>
                                 @elseif ($email?->value)
-                                    <i class="bi bi-envelope"></i>
-                                    {{ $email->value }}
-
-                                    @if ($email->is_primary)
-                                        <i class="bi bi-star-fill" title="Primary"></i>
-                                    @endif
+                                    <span class="contact-pill-mini">
+                                        <i class="bi bi-envelope"></i>
+                                        {{ $email->value }}
+                                        @if ($email->is_primary)
+                                            <i class="bi bi-star-fill text-warning" title="Primary"></i>
+                                        @endif
+                                    </span>
+                                @elseif ($whatsapp?->value)
+                                    <span class="contact-pill-mini">
+                                        <i class="bi bi-whatsapp"></i>
+                                        {{ $whatsapp->value }}
+                                        @if ($whatsapp->is_primary)
+                                            <i class="bi bi-star-fill text-warning" title="Primary"></i>
+                                        @endif
+                                    </span>
+                                @else
+                                    <span class="text-muted">—</span>
                                 @endif
                             </small>
                         </span>
@@ -312,132 +344,132 @@
                     />
                 </div>
 
-                <dl>
-                    <div>
-                        <dt>Phone</dt>
-                        <dd>{{ $phone?->value ?? '—' }}</dd>
-                    </div>
+                {{-- Badges Row: Status, Stage, Priority --}}
+                <div class="leads-card-badges d-flex align-items-center flex-wrap gap-2">
+                    <span
+                        class="status-badge"
+                        @if ($lead->status?->color_code)
+                            style="background-color: {{ $lead->status->color_code }};"
+                        @endif
+                    >
+                        {{ $lead->status?->name ?? 'Unknown' }}
+                    </span>
 
-                    <div>
-                        <dt>WhatsApp</dt>
-                        <dd>{{ $whatsapp?->value ?? '—' }}</dd>
-                    </div>
+                    <span
+                        class="status-badge"
+                        @if ($lead->pipelineStage?->color_code)
+                            style="background-color: {{ $lead->pipelineStage->color_code }};"
+                        @endif
+                    >
+                        {{ $lead->pipelineStage?->name ?? 'Unknown' }}
+                    </span>
 
-                    <div>
-                        <dt>Email</dt>
-                        <dd>{{ $email?->value ?? '—' }}</dd>
-                    </div>
-
-                    <div>
-                        <dt>City</dt>
-                        <dd>{{ $lead->city ?? '—' }}</dd>
-                    </div>
-
-                    <div>
-                        <dt>Source</dt>
-                        <dd>{{ $lead->source?->name ?? '—' }}</dd>
-                    </div>
-
-                    <div>
-                        <dt>Status</dt>
-                        <dd>
-                            <span
-                                class="status-badge"
-                                @if ($lead->status?->color_code)
-                                    style="background-color: {{ $lead->status->color_code }};"
-                                @endif
-                            >
-                                {{ $lead->status?->name ?? 'Unknown' }}
-                            </span>
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt>Stage</dt>
-                        <dd>
-                            <span
-                                class="status-badge"
-                                @if ($lead->pipelineStage?->color_code)
-                                    style="background-color: {{ $lead->pipelineStage->color_code }};"
-                                @endif
-                            >
-                                {{ $lead->pipelineStage?->name ?? 'Unknown' }}
-                            </span>
-                        </dd>
-                    </div>
-
-                    <div>
-                        <dt>Priority</dt>
-                        <dd>{{ $lead->priority?->name ?? '—' }}</dd>
-                    </div>
-
-                    <div>
-                        <dt>Assigned user</dt>
-                        <dd>{{ $lead->assignedUser?->name ?? 'Unassigned' }}</dd>
-                    </div>
-
-                    <div>
-                        <dt>Created</dt>
-                        <dd>{{ $lead->created_at?->format('d M Y') ?? '—' }}</dd>
-                    </div>
-
-                    <div>
-                        <dt>Next follow-up</dt>
-                        <dd>
-                            @if ($nextFollowUp)
-                                <strong>
-                                    {{ $nextFollowUp->due_at?->format('d M, h:i a') ?? '—' }}
-                                </strong>
-
-                                @if ($nextFollowUp->type?->name || $nextFollowUp->status?->name)
-                                    <small class="d-block">
-                                        {{ $nextFollowUp->type?->name ?? '—' }}
-
-                                        @if ($nextFollowUp->status?->name)
-                                            · {{ $nextFollowUp->status->name }}
-                                        @endif
-                                    </small>
-                                @endif
-                            @else
-                                —
-                            @endif
-                        </dd>
-                    </div>
-                </dl>
-
-                <div class="mobile-actions">
-                    @if ($phone?->value)
-                        <a
-                            class="btn btn-light"
-                            href="tel:{{ $phone->value }}"
-                        >
-                            <i class="bi bi-telephone"></i>
-                            Call
-                        </a>
-                    @endif
-
-                    @if ($whatsapp?->value)
-                        <a
-                            class="btn btn-light"
-                            target="_blank"
-                            rel="noopener"
-                            href="https://wa.me/{{ preg_replace('/\D/', '', $whatsapp->value) }}"
-                        >
-                            <i class="bi bi-whatsapp"></i>
-                            WhatsApp
-                        </a>
-                    @endif
-
-                    @if ($email?->value)
-                        <a
-                            class="btn btn-light"
-                            href="mailto:{{ $email->value }}"
-                        >
-                            <i class="bi bi-envelope"></i>
-                            Email
-                        </a>
+                    @if ($lead->priority?->name)
+                        <span class="badge bg-light text-secondary border">
+                            {{ $lead->priority->name }}
+                        </span>
                     @endif
                 </div>
+
+                {{-- Metadata Grid: Structured logical grouping --}}
+                <div class="leads-card-meta">
+                    <div class="leads-meta-item">
+                        <span class="leads-meta-label">Phone</span>
+                        <span class="leads-meta-val">{{ $phone?->value ?? '—' }}</span>
+                    </div>
+
+                    <div class="leads-meta-item">
+                        <span class="leads-meta-label">WhatsApp</span>
+                        <span class="leads-meta-val">{{ $whatsapp?->value ?? '—' }}</span>
+                    </div>
+
+                    <div class="leads-meta-item">
+                        <span class="leads-meta-label">Email</span>
+                        <span class="leads-meta-val text-truncate">{{ $email?->value ?? '—' }}</span>
+                    </div>
+
+                    <div class="leads-meta-item">
+                        <span class="leads-meta-label">City</span>
+                        <span class="leads-meta-val">{{ $lead->city ?? '—' }}</span>
+                    </div>
+
+                    <div class="leads-meta-item">
+                        <span class="leads-meta-label">Source</span>
+                        <span class="leads-meta-val">{{ $lead->source?->name ?? '—' }}</span>
+                    </div>
+
+                    <div class="leads-meta-item">
+                        <span class="leads-meta-label">Assigned user</span>
+                        <span class="leads-meta-val">{{ $lead->assignedUser?->name ?? 'Unassigned' }}</span>
+                    </div>
+
+                    <div class="leads-meta-item">
+                        <span class="leads-meta-label">Created</span>
+                        <span class="leads-meta-val">{{ $lead->created_at?->format('d M Y') ?? '—' }}</span>
+                    </div>
+                </div>
+
+                {{-- Dedicated Next Follow-up Section --}}
+                <div class="leads-card-followup">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-calendar-event text-danger fs-5"></i>
+                        <div>
+                            <span class="leads-followup-label">NEXT FOLLOW-UP</span>
+                            <div class="leads-followup-time">
+                                @if ($nextFollowUp)
+                                    <strong>{{ $nextFollowUp->due_at?->format('d M, h:i a') ?? '—' }}</strong>
+                                    @if ($nextFollowUp->type?->name || $nextFollowUp->status?->name)
+                                        <small class="text-muted d-block">
+                                            {{ $nextFollowUp->type?->name ?? '' }}
+                                            @if ($nextFollowUp->status?->name)
+                                                · {{ $nextFollowUp->status->name }}
+                                            @endif
+                                        </small>
+                                    @endif
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Quick Communication Actions --}}
+                @if ($phone?->value || $whatsapp?->value || $email?->value)
+                    <div class="mobile-actions">
+                        @if ($phone?->value)
+                            <a
+                                class="btn btn-light"
+                                href="tel:{{ $phone->value }}"
+                            >
+                                <i class="bi bi-telephone"></i>
+                                Call
+                            </a>
+                        @endif
+
+                        @if ($whatsapp?->value)
+                            <a
+                                class="btn btn-light"
+                                target="_blank"
+                                rel="noopener"
+                                href="https://wa.me/{{ preg_replace('/\D/', '', $whatsapp->value) }}"
+                            >
+                                <i class="bi bi-whatsapp"></i>
+                                WhatsApp
+                            </a>
+                        @endif
+
+                        @if ($email?->value)
+                            <a
+                                class="btn btn-light"
+                                href="mailto:{{ $email->value }}"
+                            >
+                                <i class="bi bi-envelope"></i>
+                                Email
+                            </a>
+                        @endif
+                    </div>
+                @endif
 
             </article>
         @endforeach

@@ -9,17 +9,103 @@
     </div>
 
     <div class="offcanvas-body modal-body">
+        {{-- Lead Context Summary Card --}}
+        @php
+            $initials = collect(explode(' ', trim($lead->display_name)))
+                ->filter()
+                ->map(fn($w) => mb_substr($w, 0, 1))
+                ->take(2)
+                ->implode('');
+            $initials = $initials ?: 'L';
+
+            $primaryPhone = $lead->contacts->where('type', 'phone')->where('is_primary', true)->first()
+                ?? $lead->contacts->where('type', 'phone')->first();
+            $primaryEmail = $lead->contacts->where('type', 'email')->where('is_primary', true)->first()
+                ?? $lead->contacts->where('type', 'email')->first();
+            $primaryWhatsapp = $lead->contacts->where('type', 'whatsapp')->where('is_primary', true)->first()
+                ?? $lead->contacts->where('type', 'whatsapp')->first();
+        @endphp
+
+        <div class="lead-context-card p-3 mb-4 rounded-3 d-flex align-items-center justify-content-between" style="background: #f8f9fa; border: 1px solid #e9ecef;">
+            <div class="d-flex align-items-center gap-3">
+                <span class="lead-profile-avatar" style="width: 44px; height: 44px; border-radius: 12px; font-size: 14px;">
+                    {{ $initials }}
+                </span>
+                <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <strong class="text-dark fs-6">{{ $lead->display_name }}</strong>
+
+                        @if ($lead->status)
+                            <span
+                                class="status-badge"
+                                @if ($lead->status->color_code)
+                                    style="background-color: {{ $lead->status->color_code }};"
+                                @endif
+                            >
+                                {{ $lead->status->name }}
+                            </span>
+                        @endif
+
+                        @if ($lead->pipelineStage)
+                            <span class="badge bg-light text-secondary border">
+                                {{ $lead->pipelineStage->name }}
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="text-muted small d-flex align-items-center gap-3 mt-1 flex-wrap">
+                        <span><i class="bi bi-hash"></i> {{ $lead->public_id }}</span>
+
+                        <span>
+                            <i class="bi bi-person"></i>
+                            {{ $lead->assignedUser?->name ?? 'Unassigned' }}
+                        </span>
+
+                        @if ($primaryPhone?->value)
+                            <span>
+                                <i class="bi bi-telephone"></i>
+                                {{ $primaryPhone->value }}
+                            </span>
+                        @elseif ($primaryWhatsapp?->value)
+                            <span>
+                                <i class="bi bi-whatsapp"></i>
+                                {{ $primaryWhatsapp->value }}
+                            </span>
+                        @elseif ($primaryEmail?->value)
+                            <span>
+                                <i class="bi bi-envelope"></i>
+                                {{ $primaryEmail->value }}
+                            </span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <form id="editLeadForm" action="{{ route('updateLead', ['lead' => $lead->public_id]) }}" method="POST" data-lead-id="{{ $lead->public_id }}" novalidate>
             <input type="hidden" name="_method" value="PUT">
 
             {{-- 1. Contact Information --}}
             <div class="form-section">
                 <h3><span>1</span> Contact information</h3>
-                <label class="w-100 mb-3">
-                    Full name *
-                    <input type="text" class="form-control mt-1" id="editLeadDisplayName" name="display_name" required autocomplete="name" maxlength="255" placeholder="e.g. Rahul Mehra" value="{{ $lead->display_name }}">
+
+                <div class="mb-3">
+                    <label class="form-label mb-1" for="editLeadDisplayName">
+                        Full name *
+                    </label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="editLeadDisplayName"
+                        name="display_name"
+                        required
+                        autocomplete="name"
+                        maxlength="255"
+                        placeholder="e.g. Rahul Mehra"
+                        value="{{ $lead->display_name }}"
+                    >
                     <span class="invalid-feedback" data-error-for="display_name"></span>
-                </label>
+                </div>
 
                 <div id="editLeadContacts" class="d-flex flex-column gap-2">
                     @php
@@ -43,13 +129,30 @@
 
                             <div class="col-5">
                                 <label class="form-label small mb-1">Contact value *</label>
-                                <input type="text" class="form-control" name="contacts[{{ $index }}][value]" data-contact-value required maxlength="255" placeholder="e.g. Enter Value" value="{{ $contact->value }}">
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    name="contacts[{{ $index }}][value]"
+                                    data-contact-value
+                                    required
+                                    maxlength="255"
+                                    placeholder="e.g. Enter Value"
+                                    value="{{ $contact->value }}"
+                                >
                                 <span class="invalid-feedback" data-error-for="contacts.{{ $index }}.value"></span>
                             </div>
 
                             <div class="col-2 pb-2">
                                 <div class="form-check m-0">
-                                    <input class="form-check-input" type="checkbox" name="contacts[{{ $index }}][is_primary]" value="1" id="editPrimaryContact{{ $index }}" data-contact-primary {{ $contact->is_primary ? 'checked' : '' }}>
+                                    <input
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        name="contacts[{{ $index }}][is_primary]"
+                                        value="1"
+                                        id="editPrimaryContact{{ $index }}"
+                                        data-contact-primary
+                                        {{ $contact->is_primary ? 'checked' : '' }}
+                                    >
                                     <label class="form-check-label small" for="editPrimaryContact{{ $index }}">Primary</label>
                                 </div>
                             </div>
@@ -79,13 +182,29 @@
 
                             <div class="col-5">
                                 <label class="form-label small mb-1">Contact value *</label>
-                                <input type="text" class="form-control" name="contacts[0][value]" data-contact-value required maxlength="255" placeholder="e.g. Enter Value">
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    name="contacts[0][value]"
+                                    data-contact-value
+                                    required
+                                    maxlength="255"
+                                    placeholder="e.g. Enter Value"
+                                >
                                 <span class="invalid-feedback" data-error-for="contacts.0.value"></span>
                             </div>
 
                             <div class="col-2 pb-2">
                                 <div class="form-check m-0">
-                                    <input class="form-check-input" type="checkbox" name="contacts[0][is_primary]" value="1" id="editPrimaryContact0" data-contact-primary checked>
+                                    <input
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        name="contacts[0][is_primary]"
+                                        value="1"
+                                        id="editPrimaryContact0"
+                                        data-contact-primary
+                                        checked
+                                    >
                                     <label class="form-check-label small" for="editPrimaryContact0">Primary</label>
                                 </div>
                             </div>
@@ -106,9 +225,10 @@
             {{-- 2. Lead Information --}}
             <div class="form-section">
                 <h3><span>2</span> Lead information</h3>
-                <div class="form-row">
-                    <label>
-                        Lead source
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label mb-1" for="editLeadSource">Lead source</label>
                         <select class="form-select" id="editLeadSource" name="source_id">
                             <option value="">Select source</option>
                             @foreach($sources as $source)
@@ -116,10 +236,10 @@
                             @endforeach
                         </select>
                         <span class="invalid-feedback" data-error-for="source_id"></span>
-                    </label>
+                    </div>
 
-                    <label>
-                        Status *
+                    <div class="col-md-6">
+                        <label class="form-label mb-1" for="editLeadStatus">Status *</label>
                         <select class="form-select" id="editLeadStatus" name="status_id" required>
                             <option value="">Select status</option>
                             @foreach($statuses as $status)
@@ -127,12 +247,10 @@
                             @endforeach
                         </select>
                         <span class="invalid-feedback" data-error-for="status_id"></span>
-                    </label>
-                </div>
+                    </div>
 
-                <div class="form-row">
-                    <label>
-                        Stage
+                    <div class="col-md-6">
+                        <label class="form-label mb-1" for="editLeadPipelineStage">Stage</label>
                         <select class="form-select" id="editLeadPipelineStage" name="pipeline_stage_id">
                             <option value="">Select stage</option>
                             @foreach($pipelines as $pipeline)
@@ -146,13 +264,13 @@
                             @endforeach
                         </select>
                         <span class="invalid-feedback" data-error-for="pipeline_stage_id"></span>
-                    </label>
+                    </div>
 
                     @php
                         $leadPriorityVal = is_object($lead->priority) ? $lead->priority->value : (int) $lead->priority;
                     @endphp
-                    <label>
-                        Priority
+                    <div class="col-md-6">
+                        <label class="form-label mb-1" for="editLeadPriority">Priority</label>
                         <select class="form-select" id="editLeadPriority" name="priority">
                             <option value="">Default</option>
                             <option value="10" {{ $leadPriorityVal === 10 ? 'selected' : '' }}>Low</option>
@@ -160,35 +278,59 @@
                             <option value="30" {{ $leadPriorityVal === 30 ? 'selected' : '' }}>High</option>
                         </select>
                         <span class="invalid-feedback" data-error-for="priority"></span>
-                    </label>
-                </div>
+                    </div>
 
-                {{-- Location Details: City, State, Country --}}
-                <div class="form-row" style="display: flex; gap: 12px; align-items: flex-start;">
-                    <label style="flex: 1; margin: 0;">
-                        City
-                        <input type="text" class="form-control" id="editLeadCity" name="city" maxlength="150" autocomplete="address-level2" placeholder="e.g. New Delhi" value="{{ $lead->city }}">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1" for="editLeadCity">City</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="editLeadCity"
+                            name="city"
+                            maxlength="150"
+                            autocomplete="address-level2"
+                            placeholder="e.g. New Delhi"
+                            value="{{ $lead->city }}"
+                        >
                         <span class="invalid-feedback" data-error-for="city"></span>
-                    </label>
+                    </div>
 
-                    <label style="flex: 1; margin: 0;">
-                        State
-                        <input type="text" class="form-control" id="editLeadState" name="state" maxlength="100" autocomplete="address-level1" placeholder="e.g. Delhi" value="{{ $lead->state }}">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1" for="editLeadState">State</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="editLeadState"
+                            name="state"
+                            maxlength="100"
+                            autocomplete="address-level1"
+                            placeholder="e.g. Delhi"
+                            value="{{ $lead->state }}"
+                        >
                         <span class="invalid-feedback" data-error-for="state"></span>
-                    </label>
+                    </div>
 
-                    <label style="flex: 1; margin: 0;">
-                        Country
-                        <input type="text" class="form-control" id="editLeadCountry" name="country" maxlength="100" autocomplete="country-name" placeholder="e.g. India" value="{{ $lead->country }}">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1" for="editLeadCountry">Country</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="editLeadCountry"
+                            name="country"
+                            maxlength="100"
+                            autocomplete="country-name"
+                            placeholder="e.g. India"
+                            value="{{ $lead->country }}"
+                        >
                         <span class="invalid-feedback" data-error-for="country"></span>
-                    </label>
+                    </div>
                 </div>
             </div>
 
             {{-- 3. Smart Assignment --}}
             <div class="form-section">
                 <h3><span>3</span> Smart assignment</h3>
-                <div class="assignment d-flex align-items-center justify-content-between p-3 rounded-3" style="background-color: #fff5f5; border: 1px solid #ffe3e3;">
+                <div class="assignment d-flex align-items-center justify-content-between p-3 rounded-3 flex-wrap gap-3" style="background-color: #fff5f5; border: 1px solid #ffe3e3;">
                     <div class="d-flex align-items-center gap-3">
                         <i class="bi bi-magic fs-4 text-danger"></i>
                         <div>
@@ -215,7 +357,7 @@
                 @endphp
                 <div class="form-section" id="editLeadDynamicFieldsSection">
                     <h3><span>4</span> Additional information</h3>
-                    <div class="form-row" style="display: flex; flex-wrap: wrap; gap: 12px;">
+                    <div class="row g-3">
                         @foreach($fieldDefinitions as $field)
                             @php
                                 $fieldKey = $field->key ?? $field->name;
@@ -226,7 +368,7 @@
                                 $options = is_array($field->options) ? $field->options : json_decode($field->options ?? '[]', true);
                             @endphp
 
-                            <div style="flex: 1; min-width: 220px; margin-bottom: 0.75rem;">
+                            <div class="col-md-6">
                                 <label class="form-label mb-1">
                                     {{ $fieldLabel }}{{ $isRequired ? ' *' : '' }}
                                 </label>
@@ -265,8 +407,8 @@
                 @php
                     $assignedTagNames = $lead->tags->pluck('name')->all();
                 @endphp
-                <label class="w-100">
-                    Lead tags
+                <div>
+                    <label class="form-label mb-1" for="editLeadTags">Lead tags</label>
                     <select id="editLeadTags" name="tags[]" multiple placeholder="Select or type tags..." autocomplete="off">
                         @foreach($tags as $tag)
                             <option value="{{ $tag->name }}" {{ in_array($tag->name, $assignedTagNames, true) ? 'selected' : '' }}>{{ $tag->name }}</option>
@@ -279,7 +421,7 @@
                         @endforeach
                     </select>
                     <span class="invalid-feedback" data-error-for="tags"></span>
-                </label>
+                </div>
             </div>
         </form>
     </div>
