@@ -177,11 +177,11 @@
                                         'action' => 'view',
                                         'icon' => 'eye',
                                     ],
-                                    [
+                                    ...(auth()->user()?->hasPermission('leads.update') ? [[
                                         'label' => 'Edit',
                                         'action' => 'edit',
                                         'icon' => 'pencil-square',
-                                    ],
+                                    ]] : []),
                                     ...($phone?->value ? [[
                                         'label' => 'Call',
                                         'href' => 'tel:' . $phone->value,

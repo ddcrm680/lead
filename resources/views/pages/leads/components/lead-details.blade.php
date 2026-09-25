@@ -160,15 +160,17 @@
                 </a>
             @endif
 
-            <button
-                class="btn btn-outline-dark lead-profile-action lead-profile-action--secondary"
-                type="button"
-                data-lead-id="{{ $lead->public_id }}"
-                data-lead-action="edit"
-            >
-                <i class="bi bi-pencil"></i>
-                <span>Edit</span>
-            </button>
+            @if (auth()->user()?->hasPermission('leads.update'))
+                <button
+                    class="btn btn-outline-dark lead-profile-action lead-profile-action--secondary"
+                    type="button"
+                    data-lead-id="{{ $lead->public_id }}"
+                    data-lead-action="edit"
+                >
+                    <i class="bi bi-pencil"></i>
+                    <span>Edit</span>
+                </button>
+            @endif
 
             <x-action-menu
                 :id="$lead->public_id"
@@ -190,11 +192,11 @@
                         'href' => 'mailto:' . $email->value,
                         'icon' => 'envelope',
                     ]] : []),
-                    [
+                    ...(auth()->user()?->hasPermission('leads.update') ? [[
                         'label' => 'Edit lead',
                         'action' => 'edit',
                         'icon' => 'pencil',
-                    ],
+                    ]] : []),
                     [
                         'label' => 'Delete lead',
                         'action' => 'delete',

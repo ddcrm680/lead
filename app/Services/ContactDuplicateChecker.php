@@ -13,10 +13,12 @@ class ContactDuplicateChecker
         Lead $lead,
         string $type,
         string $normalizedValue,
+        ?int $ignoreContactId = null,
     ): bool {
         return $lead->contacts()
             ->where('type', $type)
             ->where('normalized_value', $normalizedValue)
+            ->when($ignoreContactId, fn ($query) => $query->where('id', '!=', $ignoreContactId))
             ->exists();
     }
 }

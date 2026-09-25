@@ -17,7 +17,7 @@
       data-leads-data-url="{{ route('leadsData') }}"
       data-create-url="{{ route('createLead') }}"
       data-view-url="{{ route('viewLead', ['lead' => '__LEAD__']) }}"
-
+      data-edit-url="{{ route('editLead', ['lead' => '__LEAD__']) }}"
       >
 
         <div class="page-stack">

@@ -6,8 +6,12 @@
 (() => {
     'use strict';
 
+    const leadsPage = $('#leads');
+
     let contactIndex = 1;
+    let editContactIndex = 100;
     let tagSelectInstance = null;
+    let editTagSelectInstance = null;
 
     /**
      * Fetch, inject, and display the Create Lead drawer.
@@ -76,9 +80,189 @@
     }
 
     /**
-     * Handle Create Lead drawer and contact repeater actions.
+     * Fetch, inject, and display the Edit Lead drawer.
+     */
+    async function openEditLeadDrawer(leadId) {
+        if (!leadId) {
+            return;
+        }
+
+        const editUrlTemplate = leadsPage?.dataset.editUrl;
+
+        if (!editUrlTemplate) {
+            return;
+        }
+
+        const editUrl = editUrlTemplate.replace('__LEAD__', leadId);
+
+        try {
+            const existingDrawer = $('#editLead');
+
+            if (existingDrawer) {
+                const instance = bootstrap.Offcanvas.getInstance(existingDrawer);
+                instance?.dispose();
+                existingDrawer.remove();
+            }
+
+            const response = await axios.get(editUrl);
+
+            document.body.insertAdjacentHTML(
+                'beforeend',
+                response.data.html ?? ''
+            );
+
+            const editLeadDrawer = $('#editLead');
+
+            if (!editLeadDrawer) {
+                return;
+            }
+
+            // Initialize Tom Select on newly injected markup.
+            const tagsSelect = $('#editLeadTags', editLeadDrawer);
+
+            if (tagsSelect && typeof TomSelect !== 'undefined') {
+                editTagSelectInstance = new TomSelect(tagsSelect, {
+                    plugins: ['remove_button'],
+                    create: true,
+                    persist: false,
+                    createOnBlur: true,
+                    placeholder: 'Select or type tags...',
+                });
+            }
+
+            const existingRows = $$('[data-contact-row]', editLeadDrawer);
+            editContactIndex = Math.max(existingRows.length + 1, 100);
+
+            bootstrap.Offcanvas
+                .getOrCreateInstance(editLeadDrawer)
+                .show();
+
+            // Destroy plugins and remove the injected drawer after closing.
+            editLeadDrawer.addEventListener(
+                'hidden.bs.offcanvas',
+                () => {
+                    if (editTagSelectInstance) {
+                        editTagSelectInstance.destroy();
+                        editTagSelectInstance = null;
+                    }
+
+                    editLeadDrawer.remove();
+                },
+                { once: true }
+            );
+        } catch (error) {
+            console.log(error);
+            handleResponseError(error);
+        }
+    }
+
+    /**
+     * Generate and append a new contact row to the specified container.
+     */
+    function addContactRow({ container, index, primaryIdPrefix = 'primaryContact' }) {
+        if (!container) {
+            return;
+        }
+
+        const row = document.createElement('div');
+        row.className = 'row g-2 align-items-end lead-contact-row mt-1';
+        row.setAttribute('data-contact-row', '');
+
+        row.innerHTML = `
+            <div class="col-4">
+                <label class="form-label small mb-1">Contact type *</label>
+                <select class="form-select" name="contacts[${index}][type]" data-contact-type required>
+                    <option value="">Select type</option>
+                    <option value="phone">Phone</option>
+                    <option value="email">Email</option>
+                    <option value="whatsapp">WhatsApp</option>
+                </select>
+                <span class="invalid-feedback" data-error-for="contacts.${index}.type"></span>
+            </div>
+
+            <div class="col-5">
+                <label class="form-label small mb-1">Contact value *</label>
+                <input
+                    type="text"
+                    class="form-control"
+                    name="contacts[${index}][value]"
+                    data-contact-value
+                    required
+                    maxlength="255"
+                    placeholder="e.g. Enter value"
+                >
+                <span class="invalid-feedback" data-error-for="contacts.${index}.value"></span>
+            </div>
+
+            <div class="col-2 pb-2">
+                <div class="form-check m-0">
+                    <input
+                        class="form-check-input"
+                        type="checkbox"
+                        name="contacts[${index}][is_primary]"
+                        value="1"
+                        id="${primaryIdPrefix}${index}"
+                        data-contact-primary
+                    >
+                    <label class="form-check-label small" for="${primaryIdPrefix}${index}">
+                        Primary
+                    </label>
+                </div>
+            </div>
+
+            <div class="col-1 pb-1 text-center">
+                <button
+                    type="button"
+                    class="btn btn-outline-danger btn-sm remove-contact-btn d-flex align-items-center justify-content-center"
+                    style="width: 32px; height: 32px;"
+                    title="Remove contact"
+                >
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+
+        container.appendChild(row);
+    }
+
+    /**
+     * Handle Lead actions, drawer triggers, and contact repeater actions.
      */
     document.addEventListener('click', function (event) {
+        const actionBtn = event.target.closest('[data-lead-action]');
+
+        if (actionBtn) {
+            event.preventDefault();
+
+            const leadId = actionBtn.dataset.leadId;
+            const action = actionBtn.dataset.leadAction;
+
+            if (!leadId) {
+                return;
+            }
+
+            switch (action) {
+                case 'view':
+                    openLeadDetails(leadId);
+                    break;
+
+                case 'edit':
+                    openEditLeadDrawer(leadId);
+                    break;
+
+                case 'delete':
+                case 'tag':
+                case 'follow-up':
+                    // Placeholders for future lead actions
+                    break;
+
+                default:
+                    break;
+            }
+
+            return;
+        }
+
         const openBtn = event.target.closest(
             '[data-bs-target="#addLead"], [data-action="create-lead"]'
         );
@@ -97,75 +281,22 @@
         const addContactBtn = event.target.closest('#addLeadContactBtn');
 
         if (addContactBtn) {
-            const contactsContainer = $('#leadContacts');
+            addContactRow({
+                container: $('#leadContacts'),
+                index: contactIndex++,
+                primaryIdPrefix: 'primaryContact',
+            });
+            return;
+        }
 
-            if (!contactsContainer) {
-                return;
-            }
+        const addEditContactBtn = event.target.closest('#addEditLeadContactBtn');
 
-            const row = document.createElement('div');
-
-            row.className =
-                'row g-2 align-items-end lead-contact-row mt-1';
-
-            row.setAttribute('data-contact-row', '');
-
-            row.innerHTML = `
-                <div class="col-4">
-                    <label class="form-label small mb-1">Contact type *</label>
-                    <select class="form-select" name="contacts[${contactIndex}][type]" data-contact-type required>
-                        <option value="">Select type</option>
-                        <option value="phone">Phone</option>
-                        <option value="email">Email</option>
-                        <option value="whatsapp">WhatsApp</option>
-                    </select>
-                    <span class="invalid-feedback" data-error-for="contacts.${contactIndex}.type"></span>
-                </div>
-
-                <div class="col-5">
-                    <label class="form-label small mb-1">Contact value *</label>
-                    <input
-                        type="text"
-                        class="form-control"
-                        name="contacts[${contactIndex}][value]"
-                        data-contact-value
-                        required
-                        maxlength="255"
-                        placeholder="e.g. Enter value"
-                    >
-                    <span class="invalid-feedback" data-error-for="contacts.${contactIndex}.value"></span>
-                </div>
-
-                <div class="col-2 pb-2">
-                    <div class="form-check m-0">
-                        <input
-                            class="form-check-input"
-                            type="checkbox"
-                            name="contacts[${contactIndex}][is_primary]"
-                            value="1"
-                            id="primaryContact${contactIndex}"
-                            data-contact-primary
-                        >
-                        <label class="form-check-label small" for="primaryContact${contactIndex}">
-                            Primary
-                        </label>
-                    </div>
-                </div>
-
-                <div class="col-1 pb-1 text-center">
-                    <button
-                        type="button"
-                        class="btn btn-outline-danger btn-sm remove-contact-btn d-flex align-items-center justify-content-center"
-                        style="width: 32px; height: 32px;"
-                        title="Remove contact"
-                    >
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            `;
-
-            contactsContainer.appendChild(row);
-            contactIndex++;
+        if (addEditContactBtn) {
+            addContactRow({
+                container: $('#editLeadContacts'),
+                index: editContactIndex++,
+                primaryIdPrefix: 'editPrimaryContact',
+            });
             return;
         }
 
@@ -188,7 +319,7 @@
             return;
         }
 
-        const contactsContainer = $('#leadContacts');
+        const contactsContainer = event.target.closest('#leadContacts, #editLeadContacts');
 
         if (!contactsContainer) {
             return;
@@ -234,10 +365,69 @@
                     .getOrCreateInstance(addLeadDrawer)
                     .hide();
             }
+
+            // Reload lead list
+            await loadLeads();
         } catch (error) {
             handleResponseError(
                 error,
                 addLeadForm
+            );
+        } finally {
+            hideLoader(leadSubmitBtn);
+        }
+    });
+
+    /**
+     * Submit the Edit Lead form.
+     */
+    document.addEventListener('submit', async function (event) {
+        if (event.target.id !== 'editLeadForm') {
+            return;
+        }
+
+        event.preventDefault();
+
+        const editLeadForm = event.target;
+        const leadSubmitBtn = $('#editLeadSubmitBtn', editLeadForm);
+        const leadId = editLeadForm.dataset.leadId;
+
+        resetValidationErrors(editLeadForm);
+        showLoader(leadSubmitBtn, 'Saving...');
+
+        const formData = new FormData(editLeadForm);
+        if (!formData.has('_method')) {
+            formData.append('_method', 'PUT');
+        }
+
+        try {
+            const response = await axios.post(
+                editLeadForm.action,
+                formData
+            );
+
+            handleResponseSuccess(response.data);
+
+            const editLeadDrawer = $('#editLead');
+
+            if (editLeadDrawer) {
+                bootstrap.Offcanvas
+                    .getOrCreateInstance(editLeadDrawer)
+                    .hide();
+            }
+
+            // Refresh Lead list
+            await loadLeads();
+
+            // Refresh Lead Details drawer if open
+            const leadDetailDrawer = $('#leadDetail');
+            if (leadDetailDrawer && bootstrap.Offcanvas.getInstance(leadDetailDrawer)?._isShown && leadId) {
+                await openLeadDetails(leadId);
+            }
+        } catch (error) {
+            handleResponseError(
+                error,
+                editLeadForm
             );
         } finally {
             hideLoader(leadSubmitBtn);
@@ -250,7 +440,6 @@
      * --------------------------------------------------------------------------
      */
 
-    const leadsPage = $('#leads');
     const leadList = $('#leadList');
     const leadSearch = $('#leadSearch');
     const leadStatusFilter = $('#leadStatusFilter');
@@ -677,25 +866,6 @@
     });
 
     leadList?.addEventListener('click', function (event) {
-        const actionBtn = event.target.closest(
-            '[data-lead-action]'
-        );
-
-        if (actionBtn) {
-            const leadId = actionBtn.dataset.leadId;
-            const action = actionBtn.dataset.leadAction;
-
-            if (!leadId) {
-                return;
-            }
-
-            //view lead details
-            if (action === 'view') {
-                openLeadDetails(leadId);
-                return;
-            }
-        }
-
         const paginationButton = event.target.closest(
             '[data-lead-page]'
         );
@@ -721,4 +891,5 @@
     loadLeads();
 
     window.openCreateLeadDrawer = openCreateLeadDrawer;
+    window.openEditLeadDrawer = openEditLeadDrawer;
 })();

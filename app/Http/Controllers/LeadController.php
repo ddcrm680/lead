@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Leads\CreateLead;
+use App\Actions\Leads\UpdateLead;
 use App\Actions\Leads\ListLeads;
 use App\Actions\Leads\GetLeadDetails;
 use App\Http\Requests\Leads\LeadDataRequest;
 use App\Http\Requests\Leads\StoreLeadRequest;
+use App\Http\Requests\Leads\UpdateLeadRequest;
 use App\Models\Lead;
 use App\Enums\LeadPriority;
 use App\Models\LeadSource;
@@ -205,17 +207,94 @@ class LeadController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(string $id, GetLeadDetails $getLeadDetails): JsonResponse
     {
-        //
+        $lead = $getLeadDetails->handle($id);
+
+        $sources = LeadSource::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $statuses = LeadStatus::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['id', 'name']);
+
+        $pipelines = Pipeline::query()
+            ->where('is_active', true)
+            ->with([
+                'stages' => fn ($query) => $query
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->select(['id', 'pipeline_id', 'name']),
+            ])
+            ->orderBy('sort_order')
+            ->get(['id', 'name']);
+
+        $users = User::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $tags = Tag::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $fieldDefinitions = LeadFieldDefinition::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get([
+                'id',
+                'name',
+                'key',
+                'type',
+                'options',
+                'validation_rules',
+                'is_required',
+                'is_filterable',
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'html'    => view('pages.leads.components.edit-lead', compact(
+                'lead',
+                'sources',
+                'statuses',
+                'pipelines',
+                'users',
+                'tags',
+                'fieldDefinitions'
+            ))->render(),
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
-    {
-        //
+    public function update(
+        UpdateLeadRequest $request,
+        string $id,
+        UpdateLead $updateLead,
+    ): JsonResponse {
+        $lead = Lead::query()
+            ->where('public_id', $id)
+            ->firstOrFail();
+
+        $updatedLead = $updateLead->handle(
+            $lead,
+            $request->validated(),
+            auth()->id(),
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$updatedLead->display_name} has been updated successfully.",
+            'data' => [
+                'public_id' => $updatedLead->public_id,
+            ],
+        ]);
     }
 
     /**
