@@ -177,26 +177,31 @@
                 attribute="lead"
                 className="btn btn-outline-dark lead-profile-more"
                 :actions="[
-                    [
-                        'label' => 'Add follow-up',
-                        'action' => 'follow-up',
-                        'icon' => 'calendar-plus',
-                    ],
-                    [
-                        'label' => 'Add tag',
+                        ...(auth()->user()?->hasPermission('leads.update') ? [
+                        [
+                            'label' => 'Add follow-up',
+                            'action' => 'follow-up',
+                            'icon' => 'calendar-plus',
+                        ],
+                        [
+                        'label' => 'Edit lead',
+                        'action' => 'edit',
+                        'icon' => 'pencil',
+                        ],
+                        [
+                        'label' => 'Manage Tags',
                         'action' => 'tag',
                         'icon' => 'tag',
-                    ],
+                        ],
+
+                    ] : []),
+
                     ...($email?->value ? [[
                         'label' => 'Email',
                         'href' => 'mailto:' . $email->value,
                         'icon' => 'envelope',
                     ]] : []),
-                    ...(auth()->user()?->hasPermission('leads.update') ? [[
-                        'label' => 'Edit lead',
-                        'action' => 'edit',
-                        'icon' => 'pencil',
-                    ]] : []),
+
                     [
                         'label' => 'Delete lead',
                         'action' => 'delete',
@@ -706,15 +711,18 @@
                             <p>Labels attached to this lead.</p>
                         </div>
 
-                        <button
-                            class="btn btn-sm btn-outline-dark lead-profile-card-action"
-                            type="button"
-                            data-lead-id="{{ $lead->public_id }}"
-                            data-lead-action="tag"
-                        >
-                            <i class="bi bi-plus"></i>
-                            Add
-                        </button>
+                        @if (auth()->user()?->hasPermission('leads.update'))
+                            <button
+                                class="btn btn-sm btn-outline-dark lead-profile-card-action"
+                                type="button"
+                                data-lead-id="{{ $lead->public_id }}"
+                                data-lead-action="tag"
+                            >
+                                <i class="bi bi-tags"></i>
+                                Manage
+                            </button>
+                        @endif
+
 
                     </header>
 
@@ -847,15 +855,17 @@
                                 There is currently no upcoming follow-up for this lead.
                             </p>
 
-                            <button
-                                class="btn btn-sm btn-outline-dark lead-profile-empty-action"
-                                type="button"
-                                data-lead-id="{{ $lead->public_id }}"
-                                data-lead-action="follow-up"
-                            >
-                                <i class="bi bi-plus"></i>
-                                Add Follow-up
-                            </button>
+                            @if (auth()->user()?->hasPermission('leads.update'))
+                                <button
+                                    class="btn btn-sm btn-outline-dark lead-profile-empty-action"
+                                    type="button"
+                                    data-lead-id="{{ $lead->public_id }}"
+                                    data-lead-action="follow-up"
+                                >
+                                    <i class="bi bi-plus"></i>
+                                    Add Follow-up
+                                </button>
+                            @endif
 
                         </div>
 

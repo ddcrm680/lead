@@ -208,6 +208,138 @@
         }
     }
 
+
+    /**
+     * Fetch and manage tags for a Lead.
+     */
+    async function openLeadTagManager(leadId) {
+        if (!leadId || !leadsPage) return;
+
+        const { tagOptionsUrl, updateTagsUrl } = leadsPage.dataset;
+        if (!tagOptionsUrl || !updateTagsUrl) return;
+
+        const optionsUrl = tagOptionsUrl.replace('__LEAD__', leadId);
+        const updateUrl = updateTagsUrl.replace('__LEAD__', leadId);
+
+        try {
+            const response = await axios.get(optionsUrl);
+            const options = response.data?.data?.options ?? [];
+            const selected = response.data?.data?.selected ?? [];
+
+            let tagSelect = null;
+
+            const optionMarkup = options.map((tag) => `
+                <option value="${escapeHtml(tag.id)}" ${selected.includes(String(tag.id)) ? 'selected' : ''}>
+                    ${escapeHtml(tag.name)}
+                </option>
+            `).join('');
+
+            const result = await Swal.fire({
+                title: 'Manage tags',
+                html: `
+                    <div class="text-start">
+                        <div class="mb-2">
+                            <label for="leadTagManager" class="form-label fw-semibold">Tags</label>
+
+                            <select id="leadTagManager" name="tags" class="form-select" multiple>
+                                ${optionMarkup}
+                            </select>
+
+                            <span class="invalid-feedback" data-error-for="tags"></span>
+
+                            <div class="form-text mt-2">
+                                Add new tags or remove existing tags, then save your changes.
+                            </div>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Save tags',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#ef1b23',
+                reverseButtons: true,
+                focusConfirm: false,
+                allowOutsideClick: () => !Swal.isLoading(),
+
+                didOpen: () => {
+                    const popup = Swal.getPopup();
+                    const select = $('#leadTagManager', popup);
+
+                    if (select && typeof TomSelect !== 'undefined') {
+                        tagSelect = new TomSelect(select, {
+                            plugins: ['remove_button'],
+                            create: true,
+                            persist: false,
+                            createOnBlur: true,
+                            placeholder: 'Select or type tags...',
+                        });
+
+                        tagSelect.setValue(selected.map(String), true);
+                    }
+                },
+
+                preConfirm: async () => {
+                    const popup = Swal.getPopup();
+                    resetValidationErrors(popup);
+
+                    const value = tagSelect?.getValue();
+                    const tags = Array.isArray(value) ? value : value ? [value] : [];
+
+                    Swal.showLoading();
+
+                    try {
+                        const updateResponse = await axios.patch(
+                            updateUrl,
+                            { tags },
+                            { skipGlobalErrorHandler: true }
+                        );
+
+                        return updateResponse.data;
+                    } catch (error) {
+                        Swal.hideLoading();
+
+                        const status = error.response?.status ?? 0;
+                        const data = error.response?.data ?? {};
+
+                        if (status === 422) {
+                            showValidationErrors(popup, data.errors ?? {});
+
+                            Swal.showValidationMessage(
+                                data.message ?? 'Please check the form and try again.'
+                            );
+
+                            return false;
+                        }
+
+                        handleResponseError(error);
+                        return false;
+                    }
+                },
+
+                willClose: () => {
+                    tagSelect?.destroy();
+                    tagSelect = null;
+                },
+            });
+
+            if (!result.isConfirmed || !result.value) return;
+
+            handleResponseSuccess(result.value);
+            await loadLeads();
+
+            const leadDetailDrawer = $('#leadDetail');
+
+            if (
+                leadDetailDrawer &&
+                bootstrap.Offcanvas.getInstance(leadDetailDrawer)?._isShown
+            ) {
+                await openLeadDetails(leadId);
+            }
+        } catch (error) {
+            handleResponseError(error);
+        }
+    }
+
     /**
      * Generate and append a new contact row to the specified container.
      */
@@ -306,8 +438,11 @@
                     openLeadFollowUpDrawer(leadId);
                     break;
 
-                case 'delete':
                 case 'tag':
+                    openLeadTagManager(leadId);
+                    break;
+
+                case 'delete':
                     break;
 
                 default:

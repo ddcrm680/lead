@@ -204,6 +204,11 @@
                                             'action' => 'follow-up',
                                             'icon' => 'calendar-plus',
                                         ],
+                                        [
+                                            'label' => 'Manage Tags',
+                                            'action' => 'tag',
+                                            'icon' => 'tag',
+                                        ],
                                     ] : []),
                                     ...($phone?->value ? [[
                                         'label' => 'Call',
@@ -332,6 +337,11 @@
                                     'label' => 'Add follow-up',
                                     'action' => 'follow-up',
                                     'icon' => 'calendar-plus',
+                                ],
+                                [
+                                    'label' => 'Manage Tags',
+                                    'action' => 'tag',
+                                    'icon' => 'tag',
                                 ],
                             ] : []),
                             [

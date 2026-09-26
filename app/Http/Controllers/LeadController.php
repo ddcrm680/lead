@@ -7,11 +7,14 @@ use App\Actions\Leads\UpdateLead;
 use App\Actions\Leads\ListLeads;
 use App\Actions\Leads\GetLeadDetails;
 use App\Actions\Leads\CreateLeadFollowUp;
+use App\Actions\Leads\SyncLeadTags;
 
 use App\Http\Requests\Leads\LeadDataRequest;
 use App\Http\Requests\Leads\StoreLeadRequest;
 use App\Http\Requests\Leads\UpdateLeadRequest;
 use App\Http\Requests\Leads\StoreLeadFollowUpRequest;
+use App\Http\Requests\Leads\StoreLeadTagsRequest;
+
 use App\Models\Lead;
 use App\Enums\LeadPriority;
 use App\Models\LeadSource;
@@ -377,6 +380,73 @@ class LeadController extends Controller
             ],
         ]);
     }
+
+
+    /**
+     * Get available tags and currently assigned tags for the lead.
+     */
+    public function tagOptions(string $id): JsonResponse
+    {
+        $lead = Lead::query()
+            ->where('public_id', $id)
+            ->with([
+                'tags:id,name,color_code',
+            ])
+            ->firstOrFail();
+
+        $tags = Tag::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+                'color_code',
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'options' => $tags->map(fn ($tag) => [
+                    'id' => (string) $tag->id,
+                    'name' => $tag->name,
+                    'color_code' => $tag->color_code,
+                ])->values(),
+
+                'selected' => $lead->tags
+                    ->pluck('id')
+                    ->map(fn ($id) => (string) $id)
+                    ->values(),
+            ],
+        ]);
+    }
+
+
+    /**
+     * Update tags assigned to the specified lead.
+     */
+    public function updateTags(
+        StoreLeadTagsRequest $request,
+        string $id,
+        SyncLeadTags $syncLeadTags,
+    ): JsonResponse {
+        $lead = Lead::query()
+            ->where('public_id', $id)
+            ->firstOrFail();
+
+        $syncLeadTags->handle(
+            $lead,
+            $request->validated()['tags'] ?? [],
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lead tags updated successfully.',
+            'data' => [
+                'public_id' => $lead->public_id,
+            ],
+        ]);
+    }
+
 
     /**
      * Remove the specified resource from storage.
