@@ -9,6 +9,7 @@ use App\Actions\Leads\GetLeadDetails;
 use App\Actions\Leads\CreateLeadFollowUp;
 use App\Actions\Leads\SyncLeadTags;
 use App\Actions\Leads\UpdateLeadStatus;
+use App\Actions\Leads\DeleteLead;
 
 use App\Http\Requests\Leads\LeadDataRequest;
 use App\Http\Requests\Leads\StoreLeadRequest;
@@ -523,12 +524,22 @@ class LeadController extends Controller
         ]);
     }
 
-
     /**
-     * Remove the specified resource from storage.
+     * Soft delete the specified lead.
      */
-    public function destroy(string $id)
-    {
-        //
+    public function destroy(
+        string $id,
+        DeleteLead $deleteLead,
+    ): JsonResponse {
+        $lead = Lead::query()
+            ->where('public_id', $id)
+            ->firstOrFail();
+
+        $deleteLead->handle($lead);
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$lead->display_name} has been deleted successfully.",
+        ]);
     }
 }

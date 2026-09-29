@@ -263,12 +263,16 @@
                                         'target' => '_blank',
                                         'rel' => 'noopener',
                                     ]] : []),
-                                    [
+
+                                    ...(auth()->user()?->hasPermission('leads.delete') ? [
+                                        [
                                         'label' => 'Delete',
                                         'action' => 'delete',
                                         'icon' => 'trash',
                                         'danger' => true,
-                                    ],
+                                        ],
+                                    ] : []),
+
                                 ]"
                             />
                         </td>
@@ -389,12 +393,14 @@
                                 ],
                             ] : []),
 
-                            [
-                                'label' => 'Delete',
-                                'action' => 'delete',
-                                'icon' => 'trash',
-                                'danger' => true,
-                            ],
+                          ...(auth()->user()?->hasPermission('leads.delete') ? [
+                                [
+                                    'label' => 'Delete',
+                                    'action' => 'delete',
+                                    'icon' => 'trash',
+                                    'danger' => true,
+                                ],
+                            ] : []),
                         ]"
                     />
                 </div>

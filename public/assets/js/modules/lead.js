@@ -526,6 +526,45 @@
     }
 
     /**
+     * Soft delete a Lead.
+     */
+    async function deleteLead(leadId) {
+        if (!leadId || !leadsPage) return;
+
+        const { deleteUrl } = leadsPage.dataset;
+
+        if (!deleteUrl) return;
+
+        const url = deleteUrl.replace('__LEAD__', leadId);
+
+        const result = await Swal.fire({
+            title: 'Delete lead?',
+            text: 'This lead will be moved to deleted leads and removed from the active list.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete Lead',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#ef1b23',
+            reverseButtons: true,
+            focusCancel: true,
+        });
+
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        try {
+            const response = await axios.delete(url);
+
+            handleResponseSuccess(response.data);
+
+            await loadLeads();
+        } catch (error) {
+            handleResponseError(error);
+        }
+    }
+
+    /**
      * Generate and append a new contact row to the specified container.
      */
     function addContactRow({ container, index, primaryIdPrefix = 'primaryContact' }) {
@@ -632,6 +671,7 @@
                     break;
 
                 case 'delete':
+                    deleteLead(leadId);
                     break;
 
                 default:
