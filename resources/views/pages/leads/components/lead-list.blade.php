@@ -106,14 +106,33 @@
                         </td>
 
                         <td>
-                            <span
-                                class="status-badge"
-                                @if ($lead->status?->color_code)
-                                    style="background-color: {{ $lead->status->color_code }};"
-                                @endif
-                            >
-                                {{ $lead->status?->name ?? 'Unknown' }}
-                            </span>
+
+                            @if (auth()->user()?->hasPermission('leads.toggle-status'))
+                                <button
+                                    type="button"
+                                    class="status-badge border-0"
+                                    data-lead-id="{{ $lead->public_id }}"
+                                    data-lead-action="status"
+                                    title="Change status"
+                                    @if ($lead->status?->color_code)
+                                        style="background-color: {{ $lead->status->color_code }};"
+                                    @endif
+                                >
+                                    {{ $lead->status?->name ?? 'Unknown' }}
+
+                                    <i class="bi bi-chevron-down ms-1"></i>
+                                </button>
+                            @else
+                                <span
+                                    class="status-badge"
+                                    @if ($lead->status?->color_code)
+                                        style="background-color: {{ $lead->status->color_code }};"
+                                    @endif
+                                >
+                                    {{ $lead->status?->name ?? 'Unknown' }}
+                                </span>
+                            @endif
+
                         </td>
 
                         <td>
@@ -151,13 +170,21 @@
                         </td>
 
                         <td>
-                            @if ($lead->priority?->name)
-                                <span class="badge bg-light text-secondary border">
-                                    {{ $lead->priority->name }}
+
+                            @if ($lead->priority)
+                                <span
+                                    class="badge rounded-pill"
+                                    style="
+                                        background-color: {{ $lead->priority->color() }};
+                                        color: #fff;
+                                    "
+                                >
+                                    {{ $lead->priority->label() }}
                                 </span>
                             @else
                                 <span class="text-muted">—</span>
                             @endif
+
                         </td>
 
                         <td>
@@ -210,6 +237,15 @@
                                             'icon' => 'tag',
                                         ],
                                     ] : []),
+
+                                      ...(auth()->user()?->hasPermission('leads.toggle-status') ? [
+                                        [
+                                            'label' => 'Change Status',
+                                            'action' => 'status',
+                                            'icon' => 'arrow-repeat',
+                                        ],
+                                    ] : []),
+
                                     ...($phone?->value ? [[
                                         'label' => 'Call',
                                         'href' => 'tel:' . $phone->value,
@@ -344,6 +380,15 @@
                                     'icon' => 'tag',
                                 ],
                             ] : []),
+
+                            ...(auth()->user()?->hasPermission('leads.toggle-status') ? [
+                                [
+                                    'label' => 'Change Status',
+                                    'action' => 'status',
+                                    'icon' => 'arrow-repeat',
+                                ],
+                            ] : []),
+
                             [
                                 'label' => 'Delete',
                                 'action' => 'delete',
@@ -356,14 +401,32 @@
 
                 {{-- Badges Row: Status, Stage, Priority --}}
                 <div class="leads-card-badges d-flex align-items-center flex-wrap gap-2">
-                    <span
-                        class="status-badge"
-                        @if ($lead->status?->color_code)
-                            style="background-color: {{ $lead->status->color_code }};"
-                        @endif
-                    >
-                        {{ $lead->status?->name ?? 'Unknown' }}
-                    </span>
+
+                    @if (auth()->user()?->hasPermission('leads.toggle-status'))
+                        <button
+                            type="button"
+                            class="status-badge border-0"
+                            data-lead-id="{{ $lead->public_id }}"
+                            data-lead-action="status"
+                            title="Change status"
+                            @if ($lead->status?->color_code)
+                                style="background-color: {{ $lead->status->color_code }};"
+                            @endif
+                        >
+                            {{ $lead->status?->name ?? 'Unknown' }}
+
+                            <i class="bi bi-chevron-down ms-1"></i>
+                        </button>
+                    @else
+                        <span
+                            class="status-badge"
+                            @if ($lead->status?->color_code)
+                                style="background-color: {{ $lead->status->color_code }};"
+                            @endif
+                        >
+                            {{ $lead->status?->name ?? 'Unknown' }}
+                        </span>
+                    @endif
 
                     <span
                         class="status-badge"
@@ -374,11 +437,18 @@
                         {{ $lead->pipelineStage?->name ?? 'Unknown' }}
                     </span>
 
-                    @if ($lead->priority?->name)
-                        <span class="badge bg-light text-secondary border">
-                            {{ $lead->priority->name }}
+                    @if ($lead->priority)
+                        <span
+                            class="badge rounded-pill"
+                            style="
+                                background-color: {{ $lead->priority->color() }};
+                                color: #fff;
+                            "
+                        >
+                            {{ $lead->priority->label() }}
                         </span>
                     @endif
+
                 </div>
 
                 {{-- Metadata Grid: Structured logical grouping --}}

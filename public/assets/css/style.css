@@ -4432,3 +4432,7 @@ select:focus-visible {
     }
 }
 
+.status-badge[data-lead-action="status"] {
+    cursor: pointer;
+}
+

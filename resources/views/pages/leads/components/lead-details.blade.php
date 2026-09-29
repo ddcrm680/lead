@@ -179,9 +179,9 @@
                 :actions="[
                         ...(auth()->user()?->hasPermission('leads.update') ? [
                         [
-                            'label' => 'Add follow-up',
-                            'action' => 'follow-up',
-                            'icon' => 'calendar-plus',
+                        'label' => 'Add follow-up',
+                        'action' => 'follow-up',
+                        'icon' => 'calendar-plus',
                         ],
                         [
                         'label' => 'Edit lead',
@@ -194,6 +194,14 @@
                         'icon' => 'tag',
                         ],
 
+                    ] : []),
+
+                    ...(auth()->user()?->hasPermission('leads.toggle-status') ? [
+                        [
+                            'label' => 'Change Status',
+                            'action' => 'status',
+                            'icon' => 'arrow-repeat',
+                        ],
                     ] : []),
 
                     ...($email?->value ? [[
@@ -275,9 +283,20 @@
                 <div>
                     <small>Priority</small>
 
-                    <strong>
-                        {{ $lead->priority?->name ?? '—' }}
-                    </strong>
+                    @if ($lead->priority)
+                        <span
+                            class="badge rounded-pill"
+                            style="
+                                background-color: {{ $lead->priority->color() }};
+                                color: #fff;
+                            "
+                        >
+                            {{ $lead->priority->label() }}
+                        </span>
+                    @else
+                        <strong>—</strong>
+                    @endif
+
                 </div>
 
             </article>
@@ -1009,6 +1028,14 @@
                                     @if ($event->description)
                                         <p>
                                             {{ $event->description }}
+                                        </p>
+                                    @endif
+
+
+                                    @if (!empty($event->payload['notes']))
+                                        <p class="mb-2">
+                                            <strong>Notes:</strong>
+                                            {{ $event->payload['notes'] }}
                                         </p>
                                     @endif
 

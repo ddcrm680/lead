@@ -8,12 +8,14 @@ use App\Actions\Leads\ListLeads;
 use App\Actions\Leads\GetLeadDetails;
 use App\Actions\Leads\CreateLeadFollowUp;
 use App\Actions\Leads\SyncLeadTags;
+use App\Actions\Leads\UpdateLeadStatus;
 
 use App\Http\Requests\Leads\LeadDataRequest;
 use App\Http\Requests\Leads\StoreLeadRequest;
 use App\Http\Requests\Leads\UpdateLeadRequest;
 use App\Http\Requests\Leads\StoreLeadFollowUpRequest;
 use App\Http\Requests\Leads\StoreLeadTagsRequest;
+use App\Http\Requests\Leads\UpdateLeadStatusRequest;
 
 use App\Models\Lead;
 use App\Enums\LeadPriority;
@@ -443,6 +445,80 @@ class LeadController extends Controller
             'message' => 'Lead tags updated successfully.',
             'data' => [
                 'public_id' => $lead->public_id,
+            ],
+        ]);
+    }
+
+    /**
+     * Get available statuses and the currently assigned status for the lead.
+     */
+    public function statusOptions(string $id): JsonResponse
+    {
+        $lead = Lead::query()
+            ->where('public_id', $id)
+            ->firstOrFail();
+
+        $statuses = LeadStatus::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get([
+                'id',
+                'name',
+                'color_code',
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'options' => $statuses->map(fn ($status) => [
+                    'id' => (string) $status->id,
+                    'name' => $status->name,
+                    'color_code' => $status->color_code,
+                ])->values(),
+
+                'selected' => $lead->status_id
+                    ? (string) $lead->status_id
+                    : null,
+            ],
+        ]);
+    }
+
+    /**
+     * Update the status assigned to the specified lead.
+     */
+    public function updateStatus(
+        UpdateLeadStatusRequest $request,
+        string $id,
+        UpdateLeadStatus $updateLeadStatus,
+    ): JsonResponse {
+        $data = $request->validated();
+
+        $lead = Lead::query()
+            ->where('public_id', $id)
+            ->firstOrFail();
+
+        $status = LeadStatus::query()
+            ->whereKey($data['status_id'])
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $updatedLead = $updateLeadStatus->handle(
+            $lead,
+            $status,
+            $data,
+            auth()->id(),
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "Lead status changed to {$status->name}.",
+            'data' => [
+                'public_id' => $updatedLead->public_id,
+                'status' => [
+                    'id' => (string) $status->id,
+                    'name' => $status->name,
+                    'color_code' => $status->color_code,
+                ],
             ],
         ]);
     }

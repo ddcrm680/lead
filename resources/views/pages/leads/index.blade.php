@@ -23,7 +23,9 @@
       data-tag-options-url="{{ route('leadTagOptions', ['lead' => '__LEAD__']) }}"
       data-update-tags-url="{{ route('updateLeadTags', ['lead' => '__LEAD__']) }}"
 
-      data-toggle-status-url="{{ route('toggleLeadStatus', ['lead' => '__LEAD__']) }}"
+      data-status-options-url="{{ route('leadStatusOptions', ['lead' => '__LEAD__']) }}"
+      data-update-status-url="{{ route('updateLeadStatus', ['lead' => '__LEAD__']) }}"
+
       data-delete-url="{{ route('deleteLead', ['lead' => '__LEAD__']) }}"
 
       >

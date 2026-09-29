@@ -341,6 +341,191 @@
     }
 
     /**
+     * Fetch and change the status for a Lead.
+     */
+    async function openLeadStatusManager(leadId) {
+        if (!leadId || !leadsPage) return;
+
+        const {
+            statusOptionsUrl,
+            updateStatusUrl,
+        } = leadsPage.dataset;
+
+        if (!statusOptionsUrl || !updateStatusUrl) return;
+
+        const optionsUrl = statusOptionsUrl.replace('__LEAD__', leadId);
+        const updateUrl = updateStatusUrl.replace('__LEAD__', leadId);
+
+        try {
+            const response = await axios.get(optionsUrl);
+
+            const options = response.data?.data?.options ?? [];
+            const selected = response.data?.data?.selected ?? null;
+
+            const optionMarkup = options.map((status) => `
+                <option
+                    value="${escapeHtml(status.id)}"
+                    ${String(status.id) === String(selected) ? 'selected' : ''}
+                >
+                    ${escapeHtml(status.name)}
+                </option>
+            `).join('');
+
+            const result = await Swal.fire({
+                title: 'Change status',
+                html: `
+                    <div class="text-start">
+
+                        <div class="mb-3">
+                            <label
+                                for="leadStatusManager"
+                                class="form-label fw-semibold"
+                            >
+                                Status
+                            </label>
+
+                            <select
+                                id="leadStatusManager"
+                                name="status_id"
+                                class="form-select"
+                            >
+                                ${optionMarkup}
+                            </select>
+
+                            <span
+                                class="invalid-feedback"
+                                data-error-for="status_id"
+                            ></span>
+                        </div>
+
+                        <div class="mb-2">
+                            <label
+                                for="leadStatusNotes"
+                                class="form-label fw-semibold"
+                            >
+                                Notes
+                            </label>
+
+                            <textarea
+                                id="leadStatusNotes"
+                                name="notes"
+                                class="form-control"
+                                rows="3"
+                                maxlength="500"
+                                placeholder="Optional notes about this status change..."
+                            ></textarea>
+
+                            <span
+                                class="invalid-feedback"
+                                data-error-for="notes"
+                            ></span>
+
+                            <div class="form-text">
+                                Optional. Maximum 500 characters.
+                            </div>
+                        </div>
+
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Change status',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#ef1b23',
+                reverseButtons: true,
+                focusConfirm: false,
+                allowOutsideClick: () => !Swal.isLoading(),
+
+                preConfirm: async () => {
+                    const popup = Swal.getPopup();
+
+                    resetValidationErrors(popup);
+
+                    const statusSelect = $('#leadStatusManager', popup);
+                    const notesInput = $('#leadStatusNotes', popup);
+
+                    const statusId = statusSelect?.value ?? '';
+                    const notes = notesInput?.value.trim() ?? '';
+
+                    if (!statusId) {
+                        Swal.showValidationMessage(
+                            'Please select a status.'
+                        );
+
+                        return false;
+                    }
+
+                    if (String(statusId) === String(selected)) {
+                        Swal.showValidationMessage(
+                            'Please select a different status.'
+                        );
+
+                        return false;
+                    }
+
+                    Swal.showLoading();
+
+                    try {
+                        const updateResponse = await axios.patch(
+                            updateUrl,
+                            {
+                                status_id: statusId,
+                                notes,
+                            },
+                            {
+                                skipGlobalErrorHandler: true,
+                            }
+                        );
+
+                        return updateResponse.data;
+                    } catch (error) {
+                        Swal.hideLoading();
+
+                        const status = error.response?.status ?? 0;
+                        const data = error.response?.data ?? {};
+
+                        if (status === 422) {
+                            showValidationErrors(
+                                popup,
+                                data.errors ?? {}
+                            );
+
+                            Swal.showValidationMessage(
+                                data.message
+                                ?? 'Please check the form and try again.'
+                            );
+
+                            return false;
+                        }
+
+                        handleResponseError(error);
+
+                        return false;
+                    }
+                },
+            });
+
+            if (!result.isConfirmed || !result.value) {
+                return;
+            }
+
+            handleResponseSuccess(result.value);
+
+            await loadLeads();
+
+            const leadDetailDrawer = $('#leadDetail');
+
+            if (
+                leadDetailDrawer
+                && bootstrap.Offcanvas.getInstance(leadDetailDrawer)?._isShown
+            ) {
+                await openLeadDetails(leadId);
+            }
+        } catch (error) {
+            handleResponseError(error);
+        }
+    }
+
+    /**
      * Generate and append a new contact row to the specified container.
      */
     function addContactRow({ container, index, primaryIdPrefix = 'primaryContact' }) {
@@ -440,6 +625,10 @@
 
                 case 'tag':
                     openLeadTagManager(leadId);
+                    break;
+
+                case 'status':
+                    openLeadStatusManager(leadId);
                     break;
 
                 case 'delete':

@@ -50,9 +50,13 @@ Route::prefix('leads')->middleware('auth')->group(function () {
         ->middleware('permission:leads.update')
         ->name('updateLeadTags');
 
-    Route::patch('/{lead}/status', [LeadController::class, 'toggleStatus'])
+    Route::get('/{lead}/status/options', [LeadController::class, 'statusOptions'])
         ->middleware('permission:leads.toggle-status')
-        ->name('toggleLeadStatus');
+        ->name('leadStatusOptions');
+
+    Route::patch('/{lead}/status', [LeadController::class, 'updateStatus'])
+        ->middleware('permission:leads.toggle-status')
+        ->name('updateLeadStatus');
 
     Route::delete('/{lead}/delete', [LeadController::class, 'destroy'])
         ->middleware('permission:leads.delete')
