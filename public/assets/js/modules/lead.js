@@ -74,7 +74,6 @@
                 { once: true }
             );
         } catch (error) {
-            console.log(error);
             handleResponseError(error);
         }
     }
@@ -151,7 +150,6 @@
                 { once: true }
             );
         } catch (error) {
-            console.log(error);
             handleResponseError(error);
         }
     }
@@ -234,7 +232,10 @@
                 </option>
             `).join('');
 
+            const leadDetailDrawer = $('#leadDetail');
+
             const result = await Swal.fire({
+                target: leadDetailDrawer || document.body,
                 title: 'Manage tags',
                 html: `
                     <div class="text-start">
@@ -326,8 +327,6 @@
 
             handleResponseSuccess(result.value);
             await loadLeads();
-
-            const leadDetailDrawer = $('#leadDetail');
 
             if (
                 leadDetailDrawer &&
@@ -537,8 +536,6 @@
         if (!addNoteUrl) return;
 
         const url = addNoteUrl.replace('__LEAD__', leadId);
-
-        await new Promise((resolve) => setTimeout(resolve, 0));
 
         const leadDetailDrawer = $('#leadDetail');
 
@@ -1045,6 +1042,8 @@
     const leadSearch = $('#leadSearch');
     const leadStatusFilter = $('#leadStatusFilter');
     const leadSourceFilter = $('#leadSourceFilter');
+    const leadExportBtn = $('#exportLeadsBtn');
+
     const listViewBtn = $('#listViewBtn');
     const compactViewBtn = $('#compactViewBtn');
 
@@ -1114,44 +1113,10 @@
     });
 
     /**
-     * Load the paginated lead list using the active filters.
+     * Build the currently active Lead filters.
      */
-    async function loadLeads() {
-        if (!leadsPage || !leadList) {
-            return;
-        }
-
-        const dataUrl = leadsPage.dataset.leadsDataUrl;
-
-        if (!dataUrl) {
-            return;
-        }
-
-        if (leadListAbortController) {
-            leadListAbortController.abort();
-        }
-
-        leadListAbortController = new AbortController();
-
-        if (isMobileLeadList()) {
-            renderSkeleton({
-                element: leadList,
-                type: 'card',
-                count: 3,
-            });
-        } else {
-            renderSkeleton({
-                element: leadList,
-                type: 'row',
-                count: 3,
-                columns: 9,
-            });
-        }
-
-        const params = {
-            page: leadListState.page,
-            per_page: leadListState.perPage,
-        };
+    function getLeadFilterParams() {
+        const params = {};
 
         if (leadSearch?.value.trim()) {
             params.search = leadSearch.value.trim();
@@ -1190,7 +1155,9 @@
         }
 
         if (advancedTags) {
-            const selectedTags = Array.from(advancedTags.selectedOptions)
+            const selectedTags = Array.from(
+                advancedTags.selectedOptions
+            )
                 .map((option) => option.value)
                 .filter(Boolean);
 
@@ -1200,20 +1167,69 @@
         }
 
         if (advancedFollowUpType?.value) {
-            params.follow_up_type_id = advancedFollowUpType.value;
+            params.follow_up_type_id =
+                advancedFollowUpType.value;
         }
 
         if (advancedFollowUpStatus?.value) {
-            params.follow_up_status_id = advancedFollowUpStatus.value;
+            params.follow_up_status_id =
+                advancedFollowUpStatus.value;
         }
 
         if (advancedCreatedAfter?.value) {
-            params.created_after = advancedCreatedAfter.value;
+            params.created_after =
+                advancedCreatedAfter.value;
         }
 
         if (advancedCreatedBefore?.value) {
-            params.created_before = advancedCreatedBefore.value;
+            params.created_before =
+                advancedCreatedBefore.value;
         }
+
+        return params;
+    }
+
+    /**
+     * Load the paginated lead list using the active filters.
+     */
+    async function loadLeads() {
+        if (!leadsPage || !leadList) {
+            return;
+        }
+
+        const dataUrl = leadsPage.dataset.leadsDataUrl;
+
+        if (!dataUrl) {
+            return;
+        }
+
+        if (leadListAbortController) {
+            leadListAbortController.abort();
+        }
+
+        leadListAbortController = new AbortController();
+
+        if (isMobileLeadList()) {
+            renderSkeleton({
+                element: leadList,
+                type: 'card',
+                count: 3,
+            });
+        } else {
+            renderSkeleton({
+                element: leadList,
+                type: 'row',
+                count: 3,
+                columns: 9,
+            });
+        }
+
+        const params = {
+            ...getLeadFilterParams(),
+            page: leadListState.page,
+            per_page: leadListState.perPage,
+        };
+
 
         try {
             const response = await axios.get(
@@ -1246,6 +1262,114 @@
                 </div>
             `;
         }
+    }
+
+
+    /**
+     * ----------------------------------------
+     * Export Leads
+     * ----------------------------------------
+     */
+    async function exportLeads(format = 'csv') {
+        if (!leadsPage) {
+            return;
+        }
+
+        const exportUrl = leadsPage.dataset.exportUrl;
+
+        if (!exportUrl) {
+            return;
+        }
+
+        const params = {
+            ...getLeadFilterParams(),
+            format,
+        };
+
+        try {
+            showLoader(leadExportBtn, 'Exporting...');
+
+            const response = await axios.get(
+                exportUrl,
+                {
+                    params,
+                    responseType: 'blob',
+                }
+            );
+
+            const contentDisposition =
+                response.headers['content-disposition'];
+
+            let filename = `leads.${format}`;
+
+            const filenameMatch =
+                contentDisposition?.match(
+                    /filename="?([^"]+)"?/
+                );
+
+            if (filenameMatch?.[1]) {
+                filename = filenameMatch[1];
+            }
+
+            const blob = new Blob(
+                [response.data],
+                {
+                    type:
+                        response.headers['content-type']
+                        || 'application/octet-stream',
+                }
+            );
+
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+
+            link.href = url;
+            link.download = filename;
+
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            handleResponseError(error);
+        } finally {
+            hideLoader(leadExportBtn);
+        }
+    }
+
+    /**
+     * Show Lead export format selector.
+     */
+    async function showLeadExportFormatSelector() {
+        const result = await Swal.fire({
+            title: 'Export Leads',
+            text: 'The export uses your currently applied Lead filters. CSV, Excel, and ODS support large exports. PDF is limited to 500 records.',
+            input: 'select',
+            inputOptions: {
+                csv: 'CSV',
+                xlsx: 'Excel (.xlsx)',
+                ods: 'OpenDocument (.ods)',
+                pdf: 'PDF — up to 500 records',
+            },
+            inputValue: 'csv',
+            showCancelButton: true,
+            confirmButtonText: 'Export',
+            cancelButtonText: 'Cancel',
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Please select an export format.';
+                }
+
+                return undefined;
+            },
+        });
+
+        if (!result.isConfirmed || !result.value) {
+            return;
+        }
+
+        await exportLeads(result.value);
     }
 
     /**
@@ -1395,6 +1519,11 @@
     resetAdvancedFiltersBtn?.addEventListener(
         'click',
         resetAdvancedFilters
+    );
+
+    leadExportBtn?.addEventListener(
+        'click',
+        showLeadExportFormatSelector
     );
 
     leadSearch?.addEventListener('input', function () {

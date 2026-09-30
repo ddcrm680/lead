@@ -5,7 +5,7 @@
 
     <style>
         @page {
-            margin: 70px 25px 55px;
+            margin: 70px 20px 55px;
         }
 
         * {
@@ -15,8 +15,8 @@
         body {
             margin: 0;
             font-family: DejaVu Sans, sans-serif;
-            font-size: 9px;
-            line-height: 1.4;
+            font-size: 8px;
+            line-height: 1.35;
         }
 
         .pdf-header {
@@ -41,6 +41,7 @@
         .pdf-title {
             margin: 0 0 4px;
             font-size: 16px;
+            line-height: 1.2;
         }
 
         .pdf-meta {
@@ -50,31 +51,50 @@
 
         table {
             width: 100%;
+            max-width: 100%;
             border-collapse: collapse;
-            table-layout: auto;
+            table-layout: fixed;
         }
 
         th,
         td {
-            padding: 5px;
+            padding: 4px;
             border: 1px solid #ccc;
             text-align: left;
             vertical-align: top;
-            overflow-wrap: break-word;
+
+            white-space: normal;
+            overflow-wrap: anywhere;
             word-wrap: break-word;
+            word-break: break-word;
+        }
+
+        th {
+            font-size: 7.5px;
+            font-weight: 700;
         }
 
         thead {
             display: table-header-group;
         }
 
+        tbody {
+            display: table-row-group;
+        }
+
         tr {
             page-break-inside: avoid;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
         }
     </style>
 </head>
 
 <body>
+
     <header class="pdf-header">
         @include('exports.pdf.partials.header')
     </header>
@@ -86,5 +106,6 @@
     <main>
         @yield('content')
     </main>
+
 </body>
 </html>

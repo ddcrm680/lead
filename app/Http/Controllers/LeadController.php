@@ -19,6 +19,11 @@ use App\Http\Requests\Leads\StoreLeadFollowUpRequest;
 use App\Http\Requests\Leads\StoreLeadTagsRequest;
 use App\Http\Requests\Leads\UpdateLeadStatusRequest;
 use App\Http\Requests\Leads\StoreLeadNoteRequest;
+use App\Http\Requests\Leads\ExportLeadsRequest;
+
+
+use App\Exports\LeadsExport;
+use App\Services\Export\ExportService;
 
 
 use App\Models\Lead;
@@ -572,6 +577,29 @@ class LeadController extends Controller
                 'event_id' => $event->id,
             ],
         ]);
+    }
+
+    /**
+     * Export leads.
+     */
+    public function export(
+        ExportLeadsRequest $request,
+        ExportService $exportService,
+        ListLeads $listLeads,
+    ) {
+        $validated = $request->validated();
+
+        $format = $validated['format'] ?? 'csv';
+
+        $export = new LeadsExport(
+            filters: $validated,
+            listLeads: $listLeads,
+        );
+
+        return $exportService->download(
+            export: $export,
+            format: $format,
+        );
     }
 
 

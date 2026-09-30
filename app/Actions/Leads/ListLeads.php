@@ -4,13 +4,15 @@ namespace App\Actions\Leads;
 
 use App\Models\Lead;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 
 class ListLeads
 {
-    public function handle(array $validated): LengthAwarePaginator
+    /**
+     * Build the filtered leads query.
+     */
+    public function query(array $validated): Builder
     {
-        $perPage = $validated['per_page'] ?? 25;
-
         return Lead::query()
             ->with([
                 'source:id,name',
@@ -69,27 +71,45 @@ class ListLeads
             ->when(
                 !empty($validated['city']),
                 fn ($query) =>
-                    $query->where('city', 'like', '%' . trim($validated['city']) . '%')
+                    $query->where(
+                        'city',
+                        'like',
+                        '%' . trim($validated['city']) . '%'
+                    )
             )
             ->when(
                 !empty($validated['state']),
                 fn ($query) =>
-                    $query->where('state', 'like', '%' . trim($validated['state']) . '%')
+                    $query->where(
+                        'state',
+                        'like',
+                        '%' . trim($validated['state']) . '%'
+                    )
             )
             ->when(
                 !empty($validated['country']),
                 fn ($query) =>
-                    $query->where('country', 'like', '%' . trim($validated['country']) . '%')
+                    $query->where(
+                        'country',
+                        'like',
+                        '%' . trim($validated['country']) . '%'
+                    )
             )
             ->when(
                 !empty($validated['pipeline_stage_id']),
                 fn ($query) =>
-                    $query->where('pipeline_stage_id', $validated['pipeline_stage_id'])
+                    $query->where(
+                        'pipeline_stage_id',
+                        $validated['pipeline_stage_id']
+                    )
             )
             ->when(
                 !empty($validated['assigned_user_id']),
                 fn ($query) =>
-                    $query->where('assigned_user_id', $validated['assigned_user_id'])
+                    $query->where(
+                        'assigned_user_id',
+                        $validated['assigned_user_id']
+                    )
             )
             ->when(
                 isset($validated['priority']) && $validated['priority'] !== '',
@@ -149,7 +169,17 @@ class ListLeads
                         '<=',
                         $validated['created_before']
                     )
-            )
+            );
+    }
+
+    /**
+     * Return paginated leads.
+     */
+    public function handle(array $validated): LengthAwarePaginator
+    {
+        $perPage = $validated['per_page'] ?? 25;
+
+        return $this->query($validated)
             ->latest()
             ->paginate($perPage);
     }

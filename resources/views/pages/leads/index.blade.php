@@ -28,6 +28,7 @@
 
       data-delete-url="{{ route('deleteLead', ['lead' => '__LEAD__']) }}"
       data-add-note-url="{{ route('storeLeadNote', ['lead' => '__LEAD__']) }}"
+      data-export-url="{{ route('exportLead') }}"
 
 
       >
@@ -42,9 +43,9 @@
             </div>
 
             <div class="action-row">
-              <button class="btn btn-outline-dark" type="button" data-go="import">
+              <button class="btn btn-outline-dark" type="button">
                 <i class="bi bi-upload"></i> Import </button>
-              <button class="btn btn-dark" type="button" data-go="export">
+              <button class="btn btn-dark" type="button" id="exportLeadsBtn">
                 <i class="bi bi-download"></i> Export </button>
             </div>
 
