@@ -183,6 +183,12 @@
                         'action' => 'follow-up',
                         'icon' => 'calendar-plus',
                         ],
+
+                        [
+                        'label' => 'Add Note',
+                        'action' => 'note',
+                        'icon' => 'journal-text',
+                        ],
                         [
                         'label' => 'Edit lead',
                         'action' => 'edit',

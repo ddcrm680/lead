@@ -371,7 +371,10 @@
                 </option>
             `).join('');
 
+            const leadDetailDrawer = $('#leadDetail');
+
             const result = await Swal.fire({
+                target: leadDetailDrawer || document.body,
                 title: 'Change status',
                 html: `
                     <div class="text-start">
@@ -512,8 +515,6 @@
 
             await loadLeads();
 
-            const leadDetailDrawer = $('#leadDetail');
-
             if (
                 leadDetailDrawer
                 && bootstrap.Offcanvas.getInstance(leadDetailDrawer)?._isShown
@@ -522,6 +523,136 @@
             }
         } catch (error) {
             handleResponseError(error);
+        }
+    }
+
+    /**
+     * Add a general note to a Lead.
+     */
+    async function openLeadNoteManager(leadId) {
+        if (!leadId || !leadsPage) return;
+
+        const { addNoteUrl } = leadsPage.dataset;
+
+        if (!addNoteUrl) return;
+
+        const url = addNoteUrl.replace('__LEAD__', leadId);
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const leadDetailDrawer = $('#leadDetail');
+
+        const result = await Swal.fire({
+            target: leadDetailDrawer || document.body,
+            title: 'Add note',
+            html: `
+                <div class="text-start">
+                    <div class="mb-2">
+                        <label
+                            for="leadNote"
+                            class="form-label fw-semibold"
+                        >
+                            Note
+                        </label>
+
+                        <textarea
+                            id="leadNote"
+                            name="note"
+                            class="form-control"
+                            rows="4"
+                            maxlength="500"
+                            placeholder="Add a note about this lead..."
+                        ></textarea>
+
+                        <span
+                            class="invalid-feedback"
+                            data-error-for="note"
+                        ></span>
+
+                        <div class="form-text">
+                            Maximum 500 characters.
+                        </div>
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Add note',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#ef1b23',
+            reverseButtons: true,
+            focusConfirm: false,
+            allowOutsideClick: () => !Swal.isLoading(),
+
+            preConfirm: async () => {
+                const popup = Swal.getPopup();
+
+                resetValidationErrors(popup);
+
+                const noteInput = $('#leadNote', popup);
+                const note = noteInput?.value.trim() ?? '';
+
+                if (!note) {
+                    Swal.showValidationMessage(
+                        'Please enter a note.'
+                    );
+
+                    return false;
+                }
+
+                Swal.showLoading();
+
+                try {
+                    const response = await axios.post(
+                        url,
+                        {
+                            note,
+                        },
+                        {
+                            skipGlobalErrorHandler: true,
+                        }
+                    );
+
+                    return response.data;
+                } catch (error) {
+                    Swal.hideLoading();
+
+                    const status = error.response?.status ?? 0;
+                    const data = error.response?.data ?? {};
+
+                    if (status === 422) {
+                        showValidationErrors(
+                            popup,
+                            data.errors ?? {}
+                        );
+
+                        Swal.showValidationMessage(
+                            data.message
+                            ?? 'Please check the form and try again.'
+                        );
+
+                        return false;
+                    }
+
+                    handleResponseError(error);
+
+                    return false;
+                }
+            },
+        });
+
+        if (!result.isConfirmed || !result.value) {
+            return;
+        }
+
+        handleResponseSuccess(result.value);
+
+        await loadLeads();
+
+        if (
+            leadDetailDrawer
+            && bootstrap.Offcanvas.getInstance(leadDetailDrawer)?._isShown
+        ) {
+            await openLeadDetails(leadId);
         }
     }
 
@@ -563,6 +694,7 @@
             handleResponseError(error);
         }
     }
+
 
     /**
      * Generate and append a new contact row to the specified container.
@@ -668,6 +800,10 @@
 
                 case 'status':
                     openLeadStatusManager(leadId);
+                    break;
+
+                case 'note':
+                    openLeadNoteManager(leadId);
                     break;
 
                 case 'delete':

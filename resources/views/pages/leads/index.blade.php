@@ -27,6 +27,8 @@
       data-update-status-url="{{ route('updateLeadStatus', ['lead' => '__LEAD__']) }}"
 
       data-delete-url="{{ route('deleteLead', ['lead' => '__LEAD__']) }}"
+      data-add-note-url="{{ route('storeLeadNote', ['lead' => '__LEAD__']) }}"
+
 
       >
 

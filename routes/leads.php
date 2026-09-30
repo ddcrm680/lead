@@ -66,4 +66,8 @@ Route::prefix('leads')->middleware('auth')->group(function () {
         ->middleware('permission:leads.export')
         ->name('exportLead');
 
+    Route::post('/{lead}/notes', [LeadController::class, 'addNote'])
+        ->middleware('permission:leads.update')
+        ->name('storeLeadNote');
+
 });
