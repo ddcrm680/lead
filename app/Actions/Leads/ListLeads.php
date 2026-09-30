@@ -19,6 +19,7 @@ class ListLeads
                 'assignedUser:id,name',
                 'contacts:id,lead_id,type,value,is_primary',
                 'tags:id,name',
+                'latestNote',
                 'followUps' => fn ($query) => $query
                     ->with([
                         'type:id,name',

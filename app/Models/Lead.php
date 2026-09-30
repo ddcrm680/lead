@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
@@ -121,6 +122,28 @@ class Lead extends Model
         return $this->hasMany(LeadEvent::class);
     }
 
+     /**
+     * get latest notes from Lead history.
+     */
+    public function latestNote(): HasOne
+    {
+        return $this->hasOne(LeadEvent::class)
+            ->ofMany(
+                [
+                    'occurred_at' => 'max',
+                    'id' => 'max',
+                ],
+                function ($query) {
+                    $query
+                        ->whereIn('type', [
+                            'note_added',
+                            'status_changed',
+                            'follow_up_created',
+                        ])
+                        ->whereNotNull('payload->notes');
+                }
+            );
+    }
     /**
      * Follow-ups scheduled for the Lead.
      */

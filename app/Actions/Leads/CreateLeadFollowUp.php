@@ -35,6 +35,9 @@ class CreateLeadFollowUp
                     'type' => 'follow_up_created',
                     'title' => 'Follow-up scheduled',
                     'description' => $followUp->title,
+                    'payload' => [
+                        'notes' => $followUp->notes,
+                    ],
                 ],
             );
 

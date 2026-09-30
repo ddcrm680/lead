@@ -10,6 +10,7 @@ use App\Actions\Leads\CreateLeadFollowUp;
 use App\Actions\Leads\SyncLeadTags;
 use App\Actions\Leads\UpdateLeadStatus;
 use App\Actions\Leads\DeleteLead;
+use App\Actions\Leads\CreateLeadNote;
 
 use App\Http\Requests\Leads\LeadDataRequest;
 use App\Http\Requests\Leads\StoreLeadRequest;
@@ -17,6 +18,8 @@ use App\Http\Requests\Leads\UpdateLeadRequest;
 use App\Http\Requests\Leads\StoreLeadFollowUpRequest;
 use App\Http\Requests\Leads\StoreLeadTagsRequest;
 use App\Http\Requests\Leads\UpdateLeadStatusRequest;
+use App\Http\Requests\Leads\StoreLeadNoteRequest;
+
 
 use App\Models\Lead;
 use App\Enums\LeadPriority;
@@ -542,4 +545,34 @@ class LeadController extends Controller
             'message' => "{$lead->display_name} has been deleted successfully.",
         ]);
     }
+
+
+    /**
+     * Store a general note for the specified lead.
+     */
+    public function addNote(
+        StoreLeadNoteRequest $request,
+        string $id,
+        CreateLeadNote $createLeadNote,
+    ): JsonResponse {
+        $lead = Lead::query()
+            ->where('public_id', $id)
+            ->firstOrFail();
+
+        $event = $createLeadNote->handle(
+            $lead,
+            $request->validated(),
+            auth()->id(),
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Note added successfully.',
+            'data' => [
+                'event_id' => $event->id,
+            ],
+        ]);
+    }
+
+
 }
