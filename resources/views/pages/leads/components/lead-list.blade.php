@@ -5,12 +5,12 @@
             <thead>
                 <tr>
                     <th style="min-width: 230px;">Lead</th>
-                    <th>City</th>
                     <th>Status</th>
                     <th>Stage</th>
                     <th>Source</th>
                     <th>Assigned to</th>
                     <th>Priority</th>
+                    <th style="min-width: 220px;">Note</th>
                     <th style="min-width: 170px;">Next follow-up</th>
                     <th style="width: 50px; text-align: center;"></th>
                 </tr>
@@ -77,6 +77,14 @@
                                             </span>
                                         @endif
 
+                                         @if ($lead->city)
+                                            <span class="contact-pill-mini">
+                                                <i class="bi bi-geo-alt"></i>
+                                                {{ $lead->city }}
+                                            </span>
+                                        @endif
+
+
                                         @if ($whatsapp?->value && !$phone?->value)
                                             <span class="contact-pill-mini">
                                                 <i class="bi bi-whatsapp"></i>
@@ -90,19 +98,10 @@
                                         @if (!$phone?->value && !$email?->value && !$whatsapp?->value)
                                             <span class="text-muted">—</span>
                                         @endif
+
                                     </small>
                                 </span>
                             </button>
-                        </td>
-
-                        <td>
-                            @if ($lead->city)
-                                <span class="lead-city-text">
-                                    <i class="bi bi-geo-alt text-muted me-1"></i>{{ $lead->city }}
-                                </span>
-                            @else
-                                <span class="text-muted">—</span>
-                            @endif
                         </td>
 
                         <td>
@@ -186,6 +185,36 @@
                             @endif
 
                         </td>
+
+                        <td style="max-width: 220px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <span
+                                class="text-truncate flex-grow-1"
+                                title="{{ $lead->latestNote?->payload['notes'] ?? '' }}"
+                            >
+                                {{ $lead->latestNote
+                                    ? \Illuminate\Support\Str::limit(
+                                        $lead->latestNote->payload['notes'] ?? '—',
+                                        80
+                                    )
+                                    : '—'
+                                }}
+                            </span>
+
+                            @if (auth()->user()?->hasPermission('leads.update'))
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-dark flex-shrink-0"
+                                    data-lead-id="{{ $lead->public_id }}"
+                                    data-lead-action="note"
+                                    title="Add note"
+                                    aria-label="Add note"
+                                >
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            @endif
+                        </div>
+                    </td>
 
                         <td>
                             @if ($nextFollowUp)
@@ -493,6 +522,41 @@
                         <span class="leads-meta-label">Created</span>
                         <span class="leads-meta-val">{{ $lead->created_at?->format('d M Y') ?? '—' }}</span>
                     </div>
+
+                 <div class="leads-meta-item" style="grid-column: 1 / -1;">
+                        <span class="leads-meta-label gap-2">
+                            Note
+                            @if (auth()->user()?->hasPermission('leads.update'))
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-light flex-shrink-0"
+                                    data-lead-id="{{ $lead->public_id }}"
+                                    data-lead-action="note"
+                                    title="Add note"
+                                    aria-label="Add note"
+                                >
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            @endif
+                        </span>
+
+                        <div class="d-flex align-items-center">
+                            <span
+                                class="leads-meta-val flex-grow-1"
+                                title="{{ $lead->latestNote?->payload['notes'] ?? '' }}"
+                            >
+                                {{ $lead->latestNote
+                                    ? \Illuminate\Support\Str::limit(
+                                        $lead->latestNote->payload['notes'] ?? '—',
+                                        70
+                                    )
+                                    : '—'
+                                }}
+                            </span>
+
+                        </div>
+                    </div>
+
                 </div>
 
                 {{-- Dedicated Next Follow-up Section --}}
