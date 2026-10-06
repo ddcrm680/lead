@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\LeadImportController;
+
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('leads')->middleware('auth')->group(function () {
@@ -13,6 +15,25 @@ Route::prefix('leads')->middleware('auth')->group(function () {
         ->middleware('permission:leads.view')
         ->name('leadsData');
 
+    Route::get('/import', [LeadImportController::class, 'index'])
+         ->middleware('permission:leads.import')
+         ->name('importLead');
+
+    Route::post('/import/parse', [LeadImportController::class, 'parse'])
+        ->middleware('permission:leads.import')
+        ->name('parseLeadImport');
+
+    Route::post('/import/prepare', [LeadImportController::class, 'prepare'])
+        ->middleware('permission:leads.import')
+        ->name('prepareLeadImport');
+
+    Route::post('/import/review', [LeadImportController::class, 'review'])
+        ->middleware('permission:leads.import')
+        ->name('reviewLeadImport');
+
+    Route::post('/import/store', [LeadImportController::class, 'store'])
+        ->middleware('permission:leads.import')
+        ->name('storeLeadImport');
 
     Route::get('/create', [LeadController::class, 'create'])
         ->middleware('permission:leads.create')

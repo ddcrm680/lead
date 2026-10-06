@@ -40,6 +40,7 @@ return [
             'delete',
             'toggle-status',
             'export',
+            'import',
         ],
 
         'settings' => [
@@ -81,6 +82,7 @@ return [
             'leads.delete',
             'leads.toggle-status',
             'leads.export',
+            'leads.import',
 
             'settings.view',
             'settings.update',
@@ -93,6 +95,7 @@ return [
             'leads.update',
             'leads.toggle-status',
             'leads.export',
+            'leads.import',
 
             'lead-groups.view',
             'lead-groups.manage-members',
@@ -116,6 +119,7 @@ return [
             'leads.update',
             'leads.toggle-status',
             'leads.export',
+            'leads.import',
 
             'lead-groups.view',
             'lead-groups.create',

@@ -83,7 +83,17 @@
 
       <div class="nav-caption">DATA & SYSTEM</div>
       <nav class="side-nav">
-        <button type="button" data-page="import"><i class="bi bi-cloud-arrow-up-fill"></i><span>Import Leads</span></button>
+
+        @if (auth()->user()?->hasPermission('leads.import'))
+            <a
+                href="{{ route('importLead') }}"
+                class="{{ request()->routeIs('importLead') ? 'active' : '' }}"
+            >
+                <i class="bi bi-cloud-arrow-up-fill"></i>
+                <span>Import Leads</span>
+            </a>
+        @endif
+
         <button type="button" data-page="export"><i class="bi bi-cloud-arrow-down-fill"></i><span>Export Leads</span></button>
 
           @if (auth()->user()?->hasPermission('users.view'))

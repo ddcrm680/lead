@@ -125,10 +125,14 @@ class LeadPayloadValidator
     public function after(
         Validator $validator,
         array $data,
+        array $allowedAttributeKeys = [],
     ): void {
         $validator->after(function (
             Validator $validator
-        ) use ($data): void {
+        ) use (
+            $data,
+            $allowedAttributeKeys,
+        ): void {
             $this->validateContacts(
                 $validator,
                 $data['contacts'] ?? [],
@@ -137,6 +141,7 @@ class LeadPayloadValidator
             $this->validateDynamicAttributes(
                 $validator,
                 $data['attributes'] ?? [],
+                $allowedAttributeKeys,
             );
         });
     }
@@ -261,6 +266,8 @@ class LeadPayloadValidator
     private function validateDynamicAttributes(
         Validator $validator,
         mixed $attributes,
+        array $allowedAttributeKeys = [],
+
     ): void {
         if (! is_array($attributes)) {
             return;
@@ -281,10 +288,21 @@ class LeadPayloadValidator
         $definitionsByKey =
             $definitions->keyBy('key');
 
+        $allowedAttributeLookup = collect(
+            $allowedAttributeKeys
+        )
+            ->map(
+                static fn ($key): string =>
+                    trim((string) $key)
+            )
+            ->filter()
+            ->flip();
+
         foreach ($attributes as $key => $value) {
             if (
-                ! $definitionsByKey->has(
-                    $key
+                ! $definitionsByKey->has($key)
+                && ! $allowedAttributeLookup->has(
+                    (string) $key
                 )
             ) {
                 $validator->errors()->add(
