@@ -3,16 +3,14 @@
 namespace App\Actions\Leads;
 
 use App\Models\Lead;
-use App\Services\ContactDuplicateChecker;
-use App\Services\ContactNormalizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UpdateLead
 {
     public function __construct(
-        private ContactNormalizer $contactNormalizer,
-        private ContactDuplicateChecker $contactDuplicateChecker,
+        private CreateLeadContact $createLeadContact,
+        private UpdateLeadContact $updateLeadContact,
         private CreateLeadAssignment $createLeadAssignment,
         private SyncLeadTags $syncLeadTags,
         private CreateLeadEvent $createLeadEvent,
@@ -27,121 +25,211 @@ class UpdateLead
         array $data,
         ?int $updatedBy = null,
     ): Lead {
-        return DB::transaction(function () use ($lead, $data, $updatedBy) {
-            // 1. Capture previous assigned_user_id BEFORE updating the Lead
-            $previousAssignedUserId = $lead->assigned_user_id ? (int) $lead->assigned_user_id : null;
-            $newAssignedUserId = !empty($data['assigned_user_id']) ? (int) $data['assigned_user_id'] : null;
+        return DB::transaction(function () use (
+            $lead,
+            $data,
+            $updatedBy,
+        ) {
+            /*
+             * 1. Capture assignment before updating.
+             */
+            $previousAssignedUserId =
+                $lead->assigned_user_id
+                    ? (int) $lead->assigned_user_id
+                    : null;
 
-            // 2. Update Lead attributes
+            $newAssignedUserId =
+                ! empty($data['assigned_user_id'])
+                    ? (int) $data['assigned_user_id']
+                    : null;
+
+            /*
+             * 2. Update Lead attributes.
+             */
             $lead->update([
                 'display_name' => $data['display_name'],
                 'source_id' => $data['source_id'] ?? null,
                 'status_id' => $data['status_id'],
-                'pipeline_stage_id' => $data['pipeline_stage_id'] ?? null,
-                'assigned_user_id' => $newAssignedUserId,
-                'priority' => !empty($data['priority']) ? (int) $data['priority'] : 20,
+                'pipeline_stage_id' =>
+                    $data['pipeline_stage_id'] ?? null,
+                'assigned_user_id' =>
+                    $newAssignedUserId,
+                'priority' =>
+                    ! empty($data['priority'])
+                        ? (int) $data['priority']
+                        : 20,
                 'city' => $data['city'] ?? null,
                 'state' => $data['state'] ?? null,
                 'country' => $data['country'] ?? null,
-                'attributes' => $data['attributes'] ?? null,
+                'attributes' =>
+                    $data['attributes'] ?? null,
             ]);
 
-            // 3. Handle assignment changes and history
-            if ($previousAssignedUserId !== $newAssignedUserId) {
+            /*
+             * 3. Handle assignment changes.
+             */
+            if (
+                $previousAssignedUserId !==
+                $newAssignedUserId
+            ) {
                 if ($previousAssignedUserId) {
                     $lead->assignments()
                         ->whereNull('ended_at')
-                        ->update(['ended_at' => now()]);
+                        ->update([
+                            'ended_at' => now(),
+                        ]);
                 }
 
                 if ($newAssignedUserId) {
                     $this->createLeadAssignment->handle(
                         $lead,
                         [
-                            'user_id' => $newAssignedUserId,
-                            'assigned_by' => $updatedBy,
+                            'user_id' =>
+                                $newAssignedUserId,
+                            'assigned_by' =>
+                                $updatedBy,
                             'type' => 'manual',
-                            'reason' => 'Lead reassigned via edit',
-                            'assigned_at' => now(),
-                        ]
+                            'reason' =>
+                                'Lead reassigned via edit',
+                            'assigned_at' =>
+                                now(),
+                        ],
                     );
                 }
             }
 
-            // 4. Handle Contacts reconciliation with strict ownership verification
-            $submittedContacts = $data['contacts'] ?? [];
+            /*
+             * 4. Reconcile Lead contacts.
+             */
+            $submittedContacts =
+                $data['contacts'] ?? [];
+
             $retainedContactIds = [];
 
-            // Ownership check: any provided contact ID MUST belong to this lead
-            foreach ($submittedContacts as $contactData) {
-                if (!empty($contactData['id'])) {
-                    $contactId = (int) $contactData['id'];
-                    $ownsContact = $lead->contacts()->where('id', $contactId)->exists();
+            $existingContacts =
+                collect();
 
-                    if (!$ownsContact) {
+            /*
+             * Resolve and verify all submitted existing
+             * contacts before deleting or updating anything.
+             */
+            foreach (
+                $submittedContacts as $contactData
+            ) {
+                if (
+                    empty($contactData['id'])
+                ) {
+                    continue;
+                }
+
+                $contactId =
+                    (int) $contactData['id'];
+
+                $contact =
+                    $lead->contacts()
+                        ->whereKey($contactId)
+                        ->first();
+
+                if (! $contact) {
+                    throw ValidationException::withMessages([
+                        'contacts' => [
+                            'One or more specified contacts do not belong to this Lead.',
+                        ],
+                    ]);
+                }
+
+                $retainedContactIds[] =
+                    $contactId;
+
+                $existingContacts->put(
+                    $contactId,
+                    $contact,
+                );
+            }
+
+            /*
+             * Delete contacts removed from the edit form.
+             */
+            $lead->contacts()
+                ->whereNotIn(
+                    'id',
+                    $retainedContactIds
+                )
+                ->delete();
+
+            /*
+             * Update existing contacts through
+             * UpdateLeadContact and create new contacts
+             * through CreateLeadContact.
+             */
+            foreach (
+                $submittedContacts as $index => $contactData
+            ) {
+                $contactId =
+                    ! empty($contactData['id'])
+                        ? (int) $contactData['id']
+                        : null;
+
+                $errorKey =
+                    "contacts.{$index}.value";
+
+                if ($contactId) {
+                    $contact =
+                        $existingContacts->get(
+                            $contactId
+                        );
+
+                    if (! $contact) {
                         throw ValidationException::withMessages([
-                            'contacts' => ['One or more specified contacts do not belong to this lead.'],
+                            $errorKey => [
+                                'This contact does not belong to the specified Lead.',
+                            ],
                         ]);
                     }
 
-                    $retainedContactIds[] = $contactId;
+                    $this->updateLeadContact->handle(
+                        lead: $lead,
+                        contact: $contact,
+                        data: $contactData,
+                        errorKey: $errorKey,
+                    );
+
+                    continue;
                 }
+
+                $this->createLeadContact->handle(
+                    lead: $lead,
+                    data: $contactData,
+                    errorKey: $errorKey,
+                );
             }
 
-            // Delete contacts belonging to this lead that were removed in the UI
-            $lead->contacts()
-                ->whereNotIn('id', $retainedContactIds)
-                ->delete();
+            /*
+             * 5. Sync Tags.
+             */
+            $tags =
+                $data['tags']
+                ?? $data['tag_ids']
+                ?? [];
 
-            // Update existing or create newly appended contacts
-            foreach ($submittedContacts as $index => $contactData) {
-                $type = $contactData['type'];
-                $value = $contactData['value'];
-                $isPrimary = !empty($contactData['is_primary']);
-                $contactId = !empty($contactData['id']) ? (int) $contactData['id'] : null;
+            $this->syncLeadTags->handle(
+                $lead,
+                $tags,
+            );
 
-                $normalizedValue = $this->contactNormalizer->normalize($type, $value);
-
-                // Check duplicates against other contacts for this lead
-                if ($this->contactDuplicateChecker->exists($lead, $type, $normalizedValue, $contactId)) {
-                    throw ValidationException::withMessages([
-                        "contacts.{$index}.value" => ["This {$type} contact already exists for this lead."],
-                    ]);
-                }
-
-                if ($contactId) {
-                    // Update existing contact (resolved through lead relationship)
-                    $lead->contacts()->where('id', $contactId)->update([
-                        'type' => $type,
-                        'value' => $value,
-                        'normalized_value' => $normalizedValue,
-                        'is_primary' => $isPrimary,
-                    ]);
-                } else {
-                    // Create new contact
-                    $lead->contacts()->create([
-                        'type' => $type,
-                        'value' => $value,
-                        'normalized_value' => $normalizedValue,
-                        'is_primary' => $isPrimary,
-                    ]);
-                }
-            }
-
-            // 5. Sync Tags via existing SyncLeadTags
-            $tags = $data['tags'] ?? $data['tag_ids'] ?? [];
-            $this->syncLeadTags->handle($lead, $tags);
-
-            // 6. Create LeadEvent for the update
+            /*
+             * 6. Record update event.
+             */
             $this->createLeadEvent->handle(
                 $lead,
                 [
                     'user_id' => $updatedBy,
                     'type' => 'updated',
                     'title' => 'Lead updated',
-                    'description' => 'Lead details and information were updated.',
+                    'description' =>
+                        'Lead details and information were updated.',
                     'occurred_at' => now(),
-                ]
+                ],
             );
 
             return $lead->fresh();
