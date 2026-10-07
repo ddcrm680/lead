@@ -93,7 +93,7 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label mb-1" for="leadSource">Lead source</label>
-                        <select class="form-select" id="leadSource" name="source_id">
+                        <select class="form-select" id="leadSource" name="source_id" required>
                             <option value="">Select source</option>
                             @foreach($sources as $source)
                                 <option value="{{ $source->id }}">{{ $source->name }}</option>

@@ -39,10 +39,11 @@ class CreateLead
                 'attributes' => $data['attributes'] ?? null,
             ]);
 
-            foreach ($data['contacts'] ?? [] as $contact) {
+            foreach ($data['contacts'] ?? [] as $index => $contact) {
                 $this->createLeadContact->handle(
                     $lead,
                     $contact,
+                    "contacts.{$index}.value",
                 );
             }
 

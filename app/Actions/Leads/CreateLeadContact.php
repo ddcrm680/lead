@@ -48,6 +48,30 @@ class CreateLeadContact
             ]);
         }
 
+        /*
+         * Prevent the same normalized contact from being
+         * used by another Lead from the same source.
+         */
+        if (
+            $this->contactDuplicateChecker->existsForSource(
+                $lead->source_id
+                    ? (int) $lead->source_id
+                    : null,
+                $data['type'],
+                $normalizedValue,
+                $lead->id,
+            )
+        ) {
+            throw ValidationException::withMessages([
+                $errorKey => [
+                    'A Lead with the same source and '
+                    . $data['type']
+                    . ' contact already exists.',
+                ],
+            ]);
+        }
+
+
         return $lead->contacts()->create([
             'type' => $data['type'],
             'value' => $data['value'],

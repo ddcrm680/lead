@@ -27,7 +27,7 @@ class LeadPayloadValidator
             ],
 
             'source_id' => [
-                'nullable',
+                'required',
                 'integer',
                 'exists:lead_sources,id',
             ],

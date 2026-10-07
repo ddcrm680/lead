@@ -61,6 +61,29 @@ class UpdateLeadContact
             ]);
         }
 
+        /*
+         * Reject the same normalized contact when another
+         * Lead already has it under the same source.
+         */
+        if (
+            $this->contactDuplicateChecker->existsForSource(
+                $lead->source_id
+                    ? (int) $lead->source_id
+                    : null,
+                $data['type'],
+                $normalizedValue,
+                $lead->id,
+            )
+        ) {
+            throw ValidationException::withMessages([
+                $errorKey => [
+                    'A Lead with the same source and '
+                    . $data['type']
+                    . ' contact already exists.',
+                ],
+            ]);
+        }
+
         $contact->update([
             'type' => $data['type'],
             'value' => $data['value'],
