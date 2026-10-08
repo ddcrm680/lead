@@ -31,6 +31,9 @@
     const storeUrl =
         leadImportPage.dataset.storeUrl;
 
+    const leadsUrl =
+        leadImportPage.dataset.leadsUrl;
+
     const fileInput =
         $('#leadImportFileInput', leadImportPage);
 
@@ -71,9 +74,6 @@
         $$('[data-import-panel]', leadImportPage);
 
     let selectedFile = null;
-
-    let matchDecisions = {};
-    let reviewBaseReadyCount = 0;
     let importPlan = null;
 
     /**
@@ -323,6 +323,7 @@
     function syncPrepareState() {
         const {
             status,
+            source,
             priority,
             continueBtn,
         } = getPrepareControls();
@@ -331,9 +332,16 @@
             return;
         }
 
+        const sourceMapped =
+            source?.dataset.sourceMapped === 'true';
+
         continueBtn.disabled =
             !status?.value
-            || !priority?.value;
+            || !priority?.value
+            || (
+                !sourceMapped
+                && !source?.value
+            );
     }
 
     /**
@@ -428,6 +436,9 @@
                 html;
 
             resetReviewState();
+            const activeReviewTab = $('[data-review-filter].active',reviewPanel);
+
+            showReviewView(activeReviewTab?.dataset.reviewFilter?? 'sample');
 
             const reviewStep =
                 $('[data-import-step="3"]', leadImportPage);
@@ -477,170 +488,39 @@
     }
 
     /**
-     * Reset client-side Review decisions
-     * after fresh Review HTML is rendered.
+     * Synchronize Review state after fresh
+     * Review HTML is rendered.
      */
     function resetReviewState() {
-        matchDecisions = {};
-
-        reviewBaseReadyCount =
-            readReviewCount(
-                '#leadImportReviewReadyCount'
-            );
-
         syncReviewState();
     }
 
     /**
-     * Set one potential-match decision.
-     */
-    function setReviewDecision(
-        rowNumber,
-        decision
-    ) {
-        if (
-            !rowNumber
-            || ![
-                'import',
-                'skip',
-            ].includes(decision)
-        ) {
-            return;
-        }
-
-        matchDecisions[rowNumber] =
-            decision;
-
-        syncReviewState();
-    }
-
-    /**
-     * Apply one decision to all match rows.
-     */
-    function setAllReviewDecisions(
-        decision
-    ) {
-        const rows =
-            $$(
-                '[data-review-match-row]',
-                reviewPanel
-            );
-
-        rows.forEach((row) => {
-            const rowNumber =
-                row.dataset.reviewMatchRow;
-
-            if (!rowNumber) {
-                return;
-            }
-
-            matchDecisions[rowNumber] =
-                decision;
-        });
-
-        syncReviewState();
-    }
-
-    /**
-     * Synchronize Review decision buttons,
-     * Ready count and Continue state.
+     * Synchronize Review counts and
+     * Continue state.
      */
     function syncReviewState() {
         if (!reviewPanel) {
             return;
         }
 
-        const rows =
-            $$(
-                '[data-review-match-row]',
-                reviewPanel
-            );
-
-        const decisionButtons =
-            $$(
-                '[data-review-match-decision]',
-                reviewPanel
-            );
-
-        const readyCount =
-            $('#leadImportReviewReadyCount', reviewPanel);
-
         const continueBtn =
             $('#leadImportReviewContinueBtn', reviewPanel);
+
+        const readyCount =
+            readReviewCount(
+                '#leadImportReviewReadyCount'
+            );
 
         const issueCount =
             readReviewCount(
                 '#leadImportReviewIssueCount'
             );
 
-        let resolvedCount = 0;
-        let importCount = 0;
-
-        rows.forEach((row) => {
-            const rowNumber =
-                row.dataset.reviewMatchRow;
-
-            const decision =
-                matchDecisions[rowNumber];
-
-            if (!decision) {
-                return;
-            }
-
-            resolvedCount++;
-
-            if (decision === 'import') {
-                importCount++;
-            }
-        });
-
-        decisionButtons.forEach((button) => {
-            const rowNumber =
-                button.dataset.reviewRowNumber;
-
-            const decision =
-                button.dataset.reviewMatchDecision;
-
-            const selected =
-                matchDecisions[rowNumber]
-                === decision;
-
-            button.classList.toggle(
-                'btn-dark',
-                selected
-            );
-
-            button.classList.toggle(
-                'btn-outline-dark',
-                !selected
-            );
-
-            button.setAttribute(
-                'aria-pressed',
-                selected
-                    ? 'true'
-                    : 'false'
-            );
-        });
-
-        const currentReadyCount =
-            reviewBaseReadyCount
-            + importCount;
-
-        if (readyCount) {
-            readyCount.textContent =
-                currentReadyCount.toLocaleString();
-        }
-
-        const unresolvedCount =
-            rows.length
-            - resolvedCount;
-
         if (continueBtn) {
             continueBtn.disabled =
                 issueCount > 0
-                || unresolvedCount > 0
-                || currentReadyCount <= 0;
+                || readyCount <= 0;
         }
     }
 
@@ -671,9 +551,6 @@
                 reviewPanel
             );
 
-        const bulkActions =
-            $('#leadImportReviewBulkActions', reviewPanel);
-
         tabs.forEach((tab) => {
             tab.classList.toggle(
                 'active',
@@ -687,11 +564,6 @@
                 view.dataset.reviewView
                 !== filter;
         });
-
-        if (bulkActions) {
-            bulkActions.hidden =
-                filter !== 'matches';
-        }
     }
 
     /**
@@ -728,11 +600,6 @@
 
             match_count:
                 matchCount,
-
-            match_decisions:
-                {
-                    ...matchDecisions,
-                },
         };
     }
 
@@ -837,7 +704,7 @@
                 'Importing Leads…',
 
             results:
-                'Import complete',
+                'Import completed with issues',
 
             error:
                 'Import failed',
@@ -883,13 +750,11 @@
         }
     }
 
-    /**
-     * Render the completed Import result.
+   /**
+     * Render a partial Import result when
+     * one or more rows could not be imported.
      */
-    function renderImportResult(
-        result,
-        message
-    ) {
+    function renderImportResult(result) {
         if (
             !importPanel
             || !result
@@ -914,14 +779,6 @@
                 '#leadImportResultFailedCount',
                 result.failed_count,
             ],
-            [
-                '#leadImportResultRowsProcessed',
-                result.processed_count,
-            ],
-            [
-                '#leadImportResultMatchesReviewed',
-                result.match_count,
-            ],
         ];
 
         values.forEach(
@@ -936,24 +793,6 @@
                 }
             }
         );
-
-        const fileName =
-            $('#leadImportResultFileName', importPanel);
-
-        if (fileName) {
-            fileName.textContent =
-                result.original_name
-                || '—';
-        }
-
-        const resultMessage =
-            $('#leadImportImportResultMessage', importPanel);
-
-        if (resultMessage) {
-            resultMessage.textContent =
-                message
-                || 'Your Lead import finished successfully.';
-        }
 
         const failures =
             Array.isArray(result.failures)
@@ -1010,6 +849,120 @@
         }
     }
 
+
+    /**
+     * Show the completed Import summary and
+     * continue to the Leads list.
+     */
+    async function showImportSuccess(result) {
+        const processedCount =
+            Number(
+                result.processed_count
+                ?? 0
+            ).toLocaleString();
+
+        const createdCount =
+            Number(
+                result.created_count
+                ?? 0
+            ).toLocaleString();
+
+        const skippedCount =
+            Number(
+                result.skipped_count
+                ?? 0
+            ).toLocaleString();
+
+        const failedCount =
+            Number(
+                result.failed_count
+                ?? 0
+            ).toLocaleString();
+
+        const runningState =
+            $('#leadImportImportRunning', importPanel);
+
+        if (runningState) {
+            runningState.hidden = true;
+        }
+
+        const stateText =
+            $('#leadImportImportStateText', importPanel);
+
+        if (stateText) {
+            stateText.textContent =
+                'Import complete';
+        }
+
+        const modalResult =
+        await Swal.fire({
+            icon: 'success',
+            title: 'Import complete',
+
+            html: `
+                <div class="text-start">
+                    <p class="text-muted mb-3">
+                        Your Lead import completed successfully.
+                    </p>
+
+                    <div class="d-grid gap-2">
+                        <div class="d-flex justify-content-between">
+                            <span>Processed</span>
+                            <strong>${processedCount}</strong>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <span>Created</span>
+                            <strong>${createdCount}</strong>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <span>Skipped</span>
+                            <strong>${skippedCount}</strong>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <span>Failed</span>
+                            <strong>${failedCount}</strong>
+                        </div>
+                    </div>
+                </div>
+            `,
+
+            confirmButtonText: 'View Leads',
+            cancelButtonText: 'Import Another',
+
+            showCancelButton: true,
+            reverseButtons: true,
+
+            confirmButtonColor: '#ef1b23',
+
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+        });
+
+
+        if (modalResult.isConfirmed) {
+            if (leadsUrl) {
+                window.location.href =
+                    leadsUrl;
+
+                return;
+            }
+
+            window.location.reload();
+
+            return;
+        }
+
+        if (
+            modalResult.dismiss
+            === Swal.DismissReason.cancel
+        ) {
+            window.location.reload();
+        }
+    }
+
     /**
      * Persist the reviewed Import plan.
      */
@@ -1039,11 +992,7 @@
             const response =
                 await axios.post(
                     storeUrl,
-                    {
-                        match_decisions:
-                            importPlan.match_decisions
-                            ?? {},
-                    }
+                    {}
                 );
 
             const result =
@@ -1058,20 +1007,27 @@
                 );
             }
 
-            renderImportResult(
-                result,
-                response.data?.message
+            const failedCount =
+                Number(
+                    result.failed_count
+                    ?? 0
+                );
+
+            if (failedCount > 0) {
+                    renderImportResult(
+                        result
+                    );
+
+                    showImportState(
+                        'results'
+                    );
+
+                    return;
+                }
+
+            await showImportSuccess(
+                result
             );
-
-            showImportState('results');
-
-            showNotification({
-                type: 'success',
-                title: 'Import complete',
-                html:
-                    response.data?.message
-                    ?? 'Lead import completed successfully.',
-            });
 
         } catch (error) {
             const errorMessage =
@@ -1263,48 +1219,6 @@
 
                 if (startImportBtn) {
                     startLeadImport();
-
-                    return;
-                }
-
-                const reviewDecisionBtn =
-                    event.target.closest(
-                        '[data-review-match-decision]'
-                    );
-
-                if (reviewDecisionBtn) {
-                    setReviewDecision(
-                        reviewDecisionBtn.dataset
-                            .reviewRowNumber,
-                        reviewDecisionBtn.dataset
-                            .reviewMatchDecision
-                    );
-
-                    return;
-                }
-
-                const importAllBtn =
-                    event.target.closest(
-                        '#leadImportMatchImportAllBtn'
-                    );
-
-                if (importAllBtn) {
-                    setAllReviewDecisions(
-                        'import'
-                    );
-
-                    return;
-                }
-
-                const skipAllBtn =
-                    event.target.closest(
-                        '#leadImportMatchSkipAllBtn'
-                    );
-
-                if (skipAllBtn) {
-                    setAllReviewDecisions(
-                        'skip'
-                    );
 
                     return;
                 }

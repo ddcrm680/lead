@@ -23,6 +23,7 @@
         data-prepare-url="{{ route('prepareLeadImport') }}"
         data-review-url="{{ route('reviewLeadImport') }}"
         data-store-url="{{ route('storeLeadImport') }}"
+        data-leads-url="{{ route('leads') }}"
 
 
     >
@@ -42,14 +43,15 @@
                 </div>
 
                 <div class="action-row">
-                    <button
+                    <a
                         class="btn btn-outline-dark"
                         id="downloadLeadImportTemplateBtn"
-                        type="button"
+                        href="{{ route('downloadLeadImportTemplate') }}"
                     >
                         <i class="bi bi-file-earmark-arrow-down"></i>
                         Download template
-                    </button>
+                    </a>
+
                 </div>
             </section>
 

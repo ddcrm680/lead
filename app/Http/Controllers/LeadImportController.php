@@ -14,6 +14,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Http\Request;
 
+use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Entity\Style\Style;
+use OpenSpout\Writer\XLSX\Writer;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+
 class LeadImportController extends Controller
 {
     /**
@@ -22,6 +27,115 @@ class LeadImportController extends Controller
     public function index(): View
     {
         return view('pages.lead-import.index');
+    }
+
+    /**
+     * Download a starter Excel template for Lead imports.
+     */
+    public function downloadTemplate(): BinaryFileResponse
+    {
+        $temporaryPath = tempnam(
+            sys_get_temp_dir(),
+            'lead-import-template-'
+        );
+
+        if ($temporaryPath === false) {
+            abort(
+                500,
+                'Unable to create the Lead import template.'
+            );
+        }
+
+        $writer = new Writer();
+
+        try {
+            $writer->openToFile(
+                $temporaryPath
+            );
+
+            $sheet =
+                $writer->getCurrentSheet();
+
+            $sheet->setName('Leads');
+
+            /*
+             * Keep the template comfortable to work with
+             * when opened in Excel.
+             */
+            $sheet->setColumnWidth(
+                28,
+                1
+            );
+
+            $sheet->setColumnWidth(
+                20,
+                2
+            );
+
+            $sheet->setColumnWidth(
+                20,
+                3
+            );
+
+            $sheet->setColumnWidth(
+                30,
+                4
+            );
+
+            $sheet->setColumnWidth(
+                20,
+                5
+            );
+
+            $sheet->setColumnWidth(
+                20,
+                6
+            );
+
+            $sheet->setColumnWidth(
+                20,
+                7
+            );
+
+            $sheet->setColumnWidth(
+                30,
+                8
+            );
+
+            $headerStyle =
+                new Style();
+
+            $headerStyle->setFontBold();
+
+            $writer->addRow(
+                Row::fromValues(
+                    [
+                        'Display Name',
+                        'Phone',
+                        'WhatsApp',
+                        'Email',
+                        'City',
+                        'State',
+                        'Country',
+                        'Tags',
+                    ],
+                    $headerStyle
+                )
+            );
+        } finally {
+            $writer->close();
+        }
+
+        return response()
+            ->download(
+                $temporaryPath,
+                'lead-import-template.xlsx',
+                [
+                    'Content-Type' =>
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                ]
+            )
+            ->deleteFileAfterSend(true);
     }
 
     /**
@@ -125,7 +239,6 @@ class LeadImportController extends Controller
         ]);
     }
 
-
     /**
      * Persist the reviewed Lead import.
      */
@@ -138,16 +251,10 @@ class LeadImportController extends Controller
             []
         );
 
-        $validated =
-            $request->validated();
-
         $result = $storeLeadImport->handle(
             import: is_array($import)
                 ? $import
                 : [],
-            matchDecisions:
-                $validated['match_decisions']
-                ?? [],
             createdBy:
                 $request->user()->id,
         );

@@ -1,6 +1,5 @@
 @php
     $plan = $plan ?? [];
-    $result = $result ?? [];
 
     $totalCount = (int) ($plan['total_count'] ?? 0);
     $toImportCount = (int) ($plan['to_import_count'] ?? 0);
@@ -30,6 +29,7 @@
 
             <span class="lead-import-status-pill lead-import-status-pill--success">
                 <span></span>
+
                 <strong id="leadImportImportStateText">
                     Ready to import
                 </strong>
@@ -47,8 +47,14 @@
                         <strong id="leadImportImportReadyCount">
                             {{ number_format($toImportCount) }}
                         </strong>
-                        <span>Leads ready to import</span>
-                        <small>Will be created as new Leads</small>
+
+                        <span>
+                            Leads ready to import
+                        </span>
+
+                        <small>
+                            Will be created as new Leads
+                        </small>
                     </div>
                 </article>
             </div>
@@ -63,8 +69,14 @@
                         <strong id="leadImportImportMatchCount">
                             {{ number_format($matchCount) }}
                         </strong>
-                        <span>Potential matches reviewed</span>
-                        <small>Your decisions will be applied</small>
+
+                        <span>
+                            Duplicates
+                        </span>
+
+                        <small>
+                            Will be skipped automatically
+                        </small>
                     </div>
                 </article>
             </div>
@@ -79,13 +91,20 @@
                         <strong id="leadImportImportSkippedCount">
                             {{ number_format($skippedCount) }}
                         </strong>
-                        <span>Rows will be skipped</span>
-                        <small>Skipped by decision or validation</small>
+
+                        <span>
+                            Rows will be skipped
+                        </span>
+
+                        <small>
+                            Duplicate rows are skipped automatically
+                        </small>
                     </div>
                 </article>
             </div>
         </div>
 
+        {{-- Ready --}}
         <div
             id="leadImportImportReady"
             class="lead-import-import-state-panel"
@@ -104,31 +123,58 @@
                     </strong>
 
                     <ul>
-                        <li><span id="leadImportImportTotalCount">{{ number_format($totalCount) }}</span> spreadsheet rows were reviewed.</li>
-                        <li>Ready rows will be created using the normal Lead creation flow.</li>
-                        <li>Your potential-match decisions will be applied.</li>
-                        <li>Rows that cannot be safely imported will not be created.</li>
-                        <li>Additional spreadsheet columns will be kept with the Lead according to the final import rules.</li>
+                        <li>
+                            <span id="leadImportImportTotalCount">
+                                {{ number_format($totalCount) }}
+                            </span>
+                            spreadsheet rows were reviewed.
+                        </li>
+
+                        <li>
+                            Ready rows will be created using the normal Lead creation flow.
+                        </li>
+
+                        <li>
+                            Duplicate rows will be skipped automatically.
+                        </li>
+
+                        <li>
+                            Rows that cannot be safely imported will not be created.
+                        </li>
+
+                        <li>
+                            Additional spreadsheet columns will be kept with the Lead according to the final import rules.
+                        </li>
                     </ul>
                 </div>
             </aside>
         </div>
 
+        {{-- Running --}}
         <div
             id="leadImportImportRunning"
             class="lead-import-import-state-panel"
             hidden
         >
             <div class="lead-import-processing">
-                <span class="spinner-border" aria-hidden="true"></span>
+                <span
+                    class="spinner-border"
+                    aria-hidden="true"
+                ></span>
 
                 <div>
-                    <strong>Importing Leads…</strong>
-                    <p>Keep this page open while the server processes the reviewed rows.</p>
+                    <strong>
+                        Importing Leads…
+                    </strong>
+
+                    <p>
+                        Keep this page open while the server processes the reviewed rows.
+                    </p>
                 </div>
             </div>
         </div>
 
+        {{-- Partial failure results --}}
         <div
             id="leadImportImportResults"
             class="lead-import-import-state-panel"
@@ -136,13 +182,17 @@
         >
             <div class="lead-import-result-head">
                 <span>
-                    <i class="bi bi-check2-circle"></i>
+                    <i class="bi bi-exclamation-circle"></i>
                 </span>
 
                 <div>
-                    <h4>Import complete</h4>
-                    <p id="leadImportImportResultMessage">
-                        Your Lead import finished successfully.
+                    <h4>
+                        Import completed with issues
+                    </h4>
+
+                    <p>
+                        Some Lead rows could not be imported.
+                        Review the failed rows below.
                     </p>
                 </div>
             </div>
@@ -150,48 +200,51 @@
             <div class="row g-3 mt-1">
                 <div class="col-6 col-xl-3">
                     <div class="lead-import-result-stat">
-                        <strong id="leadImportResultProcessedCount">0</strong>
-                        <span>Processed</span>
+                        <strong id="leadImportResultProcessedCount">
+                            0
+                        </strong>
+
+                        <span>
+                            Processed
+                        </span>
                     </div>
                 </div>
 
                 <div class="col-6 col-xl-3">
                     <div class="lead-import-result-stat">
-                        <strong id="leadImportResultCreatedCount">0</strong>
-                        <span>Created</span>
+                        <strong id="leadImportResultCreatedCount">
+                            0
+                        </strong>
+
+                        <span>
+                            Created
+                        </span>
                     </div>
                 </div>
 
                 <div class="col-6 col-xl-3">
                     <div class="lead-import-result-stat">
-                        <strong id="leadImportResultSkippedCount">0</strong>
-                        <span>Skipped</span>
+                        <strong id="leadImportResultSkippedCount">
+                            0
+                        </strong>
+
+                        <span>
+                            Skipped
+                        </span>
                     </div>
                 </div>
 
                 <div class="col-6 col-xl-3">
                     <div class="lead-import-result-stat">
-                        <strong id="leadImportResultFailedCount">0</strong>
-                        <span>Failed</span>
+                        <strong id="leadImportResultFailedCount">
+                            0
+                        </strong>
+
+                        <span>
+                            Failed
+                        </span>
                     </div>
                 </div>
-            </div>
-
-            <div class="lead-import-result-meta mt-3">
-                <span>
-                    <small>Source file</small>
-                    <strong id="leadImportResultFileName">—</strong>
-                </span>
-
-                <span>
-                    <small>Rows processed</small>
-                    <strong id="leadImportResultRowsProcessed">0</strong>
-                </span>
-
-                <span>
-                    <small>Matches reviewed</small>
-                    <strong id="leadImportResultMatchesReviewed">0</strong>
-                </span>
             </div>
 
             <div
@@ -219,6 +272,7 @@
             </div>
         </div>
 
+        {{-- Request / server failure --}}
         <div
             id="leadImportImportError"
             class="lead-import-import-state-panel"
@@ -230,7 +284,10 @@
                 </span>
 
                 <div>
-                    <strong>Import could not be completed</strong>
+                    <strong>
+                        Import could not be completed
+                    </strong>
+
                     <p id="leadImportImportErrorMessage">
                         Review the error and try again.
                     </p>

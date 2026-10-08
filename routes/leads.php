@@ -19,6 +19,10 @@ Route::prefix('leads')->middleware('auth')->group(function () {
          ->middleware('permission:leads.import')
          ->name('importLead');
 
+    Route::get('/import/template', [LeadImportController::class, 'downloadTemplate'])
+        ->middleware('permission:leads.import')
+        ->name('downloadLeadImportTemplate');
+
     Route::post('/import/parse', [LeadImportController::class, 'parse'])
         ->middleware('permission:leads.import')
         ->name('parseLeadImport');

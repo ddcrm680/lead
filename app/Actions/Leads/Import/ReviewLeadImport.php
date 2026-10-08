@@ -986,261 +986,286 @@ class ReviewLeadImport
     }
 
     private function buildReviewResult(
-        array $rows,
-    ): array {
-        $issues = [];
-        $validRows = [];
+            array $rows,
+        ): array {
+            $issues = [];
+            $validRows = [];
 
-        foreach ($rows as $row) {
-            if (
-                ($row['errors'] ?? [])
-                !== []
-            ) {
-                $issues[] = [
-                    'row_number' =>
-                        $row['row_number'],
-
-                    'display_name' =>
-                        $row['payload']
-                            ['display_name']
-                        ?? null,
-
-                    'errors' =>
-                        $row['errors'],
-                ];
-
-                continue;
-            }
-
-            $validRows[] = $row;
-        }
-
-        $importRowsByPair =
-            $this->buildImportRowsByPair(
-                $validRows
-            );
-
-        $existingByPair =
-            $this->loadExistingContacts(
-                $validRows
-            );
-
-        $matches = [];
-        $sample = [];
-        $readyCount = 0;
-
-        foreach ($validRows as $row) {
-            $rowMatches = [];
-
-            foreach (
-                $row['normalized_contacts']
-                as $contact
-            ) {
-                $pair =
-                    $contact['pair'];
-
-                foreach (
-                    $existingByPair[$pair]
-                        ?? []
-                    as $existingContact
+            foreach ($rows as $row) {
+                if (
+                    ($row['errors'] ?? [])
+                    !== []
                 ) {
-                    $lead =
-                        $existingContact->lead;
+                    $issues[] = [
+                        'row_number' =>
+                            $row['row_number'],
 
-                    if (! $lead) {
-                        continue;
-                    }
+                        'display_name' =>
+                            $row['payload']
+                                ['display_name']
+                            ?? null,
 
-                    $key =
-                        "lead:{$lead->id}:{$pair}";
-
-                    $rowMatches[$key] = [
-                        'contact_type' =>
-                            $contact['type'],
-
-                        'contact_value' =>
-                            $existingContact->value,
-
-                        'lead' => [
-                            'display_name' =>
-                                $lead->display_name,
-
-                            'public_id' =>
-                                $lead->public_id,
-                        ],
+                        'errors' =>
+                            $row['errors'],
                     ];
+
+                    continue;
                 }
 
-                foreach (
-                    $importRowsByPair[$pair]
-                        ?? []
-                    as $otherRow
-                ) {
-                    if (
-                        $otherRow['row_number']
-                        ===
-                        $row['row_number']
-                    ) {
-                        continue;
-                    }
-
-                    $key =
-                        'row:'
-                        . $otherRow[
-                            'row_number'
-                        ]
-                        . ":{$pair}";
-
-                    $rowMatches[$key] = [
-                        'contact_type' =>
-                            $contact['type'],
-
-                        'contact_value' =>
-                            $contact['value'],
-
-                        'lead' => [
-                            'display_name' =>
-                                'Import row '
-                                . $otherRow[
-                                    'row_number'
-                                ]
-                                . ': '
-                                . (
-                                    $otherRow[
-                                        'display_name'
-                                    ]
-                                    ?: 'Lead'
-                                ),
-
-                            'public_id' =>
-                                null,
-                        ],
-                    ];
-                }
+                $validRows[] = $row;
             }
 
-            if ($rowMatches !== []) {
-                $matches[] = [
-                    'row_number' =>
-                        $row['row_number'],
-
-                    'display_name' =>
-                        $row['payload']
-                            ['display_name']
-                        ?? null,
-
-                    'contacts' =>
-                        $row['payload']
-                            ['contacts']
-                        ?? [],
-
-                    'matches' =>
-                        array_values(
-                            $rowMatches
-                        ),
-                ];
-
-                continue;
-            }
-
-            $readyCount++;
-
-            if (
-                count($sample)
-                < self::SAMPLE_LIMIT
-            ) {
-                $sample[] = [
-                    'row_number' =>
-                        $row['row_number'],
-
-                    'display_name' =>
-                        $row['payload']
-                            ['display_name']
-                        ?? null,
-
-                    'contacts' =>
-                        $row['payload']
-                            ['contacts']
-                        ?? [],
-
-                    'city' =>
-                        $row['payload']
-                            ['city']
-                        ?? null,
-
-                    'state' =>
-                        $row['payload']
-                            ['state']
-                        ?? null,
-
-                    'country' =>
-                        $row['payload']
-                            ['country']
-                        ?? null,
-                ];
-            }
-        }
-
-        return [
-            'total_count' =>
-                count($rows),
-
-            'ready_count' =>
-                $readyCount,
-
-            'issue_count' =>
-                count($issues),
-
-            'match_count' =>
-                count($matches),
-
-            'issues' =>
-                $issues,
-
-            'matches' =>
-                $matches,
-
-            'sample' =>
-                $sample,
+            $existingByPair =
+                $this->loadExistingContacts(
+                    $validRows
+                );
 
             /*
-             * Internal server-side row data.
+             * Tracks contacts belonging to uploaded rows that
+             * have already been accepted as ready.
              *
-             * Used later by final import persistence so
-             * spreadsheet parsing and Lead validation are
-             * not duplicated in another Action.
+             * This gives us deterministic "first valid row wins"
+             * behavior for duplicates inside the same file.
              */
-            'rows' =>
-                $rows,
-                ];
-    }
+            $acceptedImportPairs = [];
 
-    private function buildImportRowsByPair(
-        array $rows,
-    ): array {
-        $byPair = [];
+            $matches = [];
+            $sample = [];
+            $readyCount = 0;
 
-        foreach ($rows as $row) {
-            foreach (
-                $row['normalized_contacts']
-                as $contact
-            ) {
-                $byPair[$contact['pair']]
-                    ??= [];
+            foreach ($validRows as $row) {
+                $rowMatches = [];
 
-                $byPair[$contact['pair']][] = [
-                    'row_number' =>
-                        $row['row_number'],
+                foreach (
+                    $row['normalized_contacts']
+                    as $contact
+                ) {
+                    $pair =
+                        $contact['pair'];
 
-                    'display_name' =>
-                        $row['payload']
-                            ['display_name']
-                        ?? null,
-                ];
+                    $sourcePair =
+                        $this->sourceContactKey(
+                            (int) $row['payload']['source_id'],
+                            $pair,
+                        );
+
+                    /*
+                     * Duplicate against an existing CRM Lead.
+                     */
+                    foreach (
+                        $existingByPair[$sourcePair]
+                            ?? []
+                        as $existingContact
+                    ) {
+                        $lead =
+                            $existingContact->lead;
+
+                        if (! $lead) {
+                            continue;
+                        }
+
+                        $key =
+                            "lead:{$lead->id}:{$pair}";
+
+                        $rowMatches[$key] = [
+                            'contact_type' =>
+                                $contact['type'],
+
+                            'contact_value' =>
+                                $existingContact->value,
+
+                            'lead' => [
+                                'display_name' =>
+                                    $lead->display_name,
+
+                                'public_id' =>
+                                    $lead->public_id,
+                            ],
+                        ];
+                    }
+
+                    /*
+                     * Duplicate against an earlier uploaded row
+                     * that has already been accepted as ready.
+                     */
+                    if (
+                        isset(
+                            $acceptedImportPairs[
+                                $sourcePair
+                            ]
+                        )
+                    ) {
+                        $otherRow =
+                            $acceptedImportPairs[
+                                $sourcePair
+                            ];
+
+                        $key =
+                            'row:'
+                            . $otherRow['row_number']
+                            . ":{$pair}";
+
+                        $rowMatches[$key] = [
+                            'contact_type' =>
+                                $contact['type'],
+
+                            'contact_value' =>
+                                $contact['value'],
+
+                            'lead' => [
+                                'display_name' =>
+                                    'Import row '
+                                    . $otherRow[
+                                        'row_number'
+                                    ]
+                                    . ': '
+                                    . (
+                                        $otherRow[
+                                            'display_name'
+                                        ]
+                                        ?: 'Lead'
+                                    ),
+
+                                'public_id' =>
+                                    null,
+                            ],
+                        ];
+                    }
+                }
+
+                /*
+                 * Any matching contact makes the whole Lead row
+                 * a duplicate under the current business rule.
+                 */
+                if ($rowMatches !== []) {
+                    $matches[] = [
+                        'row_number' =>
+                            $row['row_number'],
+
+                        'display_name' =>
+                            $row['payload']
+                                ['display_name']
+                            ?? null,
+
+                        'contacts' =>
+                            $row['payload']
+                                ['contacts']
+                            ?? [],
+
+                        'matches' =>
+                            array_values(
+                                $rowMatches
+                            ),
+                    ];
+
+                    continue;
+                }
+
+                /*
+                 * This row is accepted.
+                 *
+                 * Only accepted rows reserve their contacts so
+                 * a skipped duplicate cannot block later rows
+                 * using one of its other unique contacts.
+                 */
+                foreach (
+                    $row['normalized_contacts']
+                    as $contact
+                ) {
+                    $sourcePair =
+                        $this->sourceContactKey(
+                            (int) $row['payload']['source_id'],
+                            $contact['pair'],
+                        );
+
+                    $acceptedImportPairs[
+                        $sourcePair
+                    ] = [
+                        'row_number' =>
+                            $row['row_number'],
+
+                        'display_name' =>
+                            $row['payload']
+                                ['display_name']
+                            ?? null,
+                    ];
+                }
+
+                $readyCount++;
+
+                if (
+                    count($sample)
+                    < self::SAMPLE_LIMIT
+                ) {
+                    $sample[] = [
+                        'row_number' =>
+                            $row['row_number'],
+
+                        'display_name' =>
+                            $row['payload']
+                                ['display_name']
+                            ?? null,
+
+                        'contacts' =>
+                            $row['payload']
+                                ['contacts']
+                            ?? [],
+
+                        'city' =>
+                            $row['payload']
+                                ['city']
+                            ?? null,
+
+                        'state' =>
+                            $row['payload']
+                                ['state']
+                            ?? null,
+
+                        'country' =>
+                            $row['payload']
+                                ['country']
+                            ?? null,
+                    ];
+                }
             }
+
+            return [
+                'total_count' =>
+                    count($rows),
+
+                'ready_count' =>
+                    $readyCount,
+
+                'issue_count' =>
+                    count($issues),
+
+                /*
+                 * Kept temporarily for the current Review /
+                 * Store contract. These rows will become
+                 * auto-skipped duplicates in the next steps.
+                 */
+                'match_count' =>
+                    count($matches),
+
+                'issues' =>
+                    $issues,
+
+                'matches' =>
+                    $matches,
+
+                'sample' =>
+                    $sample,
+
+                'rows' =>
+                    $rows,
+            ];
         }
 
-        return $byPair;
+    private function sourceContactKey(
+        int $sourceId,
+        string $pair,
+    ): string {
+        return "{$sourceId}|{$pair}";
     }
 
     private function loadExistingContacts(
@@ -1296,7 +1321,7 @@ class ReviewLeadImport
                         $types,
                     )
                     ->with([
-                        'lead:id,public_id,display_name',
+                        'lead:id,public_id,display_name,source_id',
                     ])
                     ->get([
                         'id',
@@ -1317,9 +1342,15 @@ class ReviewLeadImport
                     . $contact
                         ->normalized_value;
 
-                $byPair[$pair] ??= [];
+                $sourcePair =
+                    $this->sourceContactKey(
+                        (int) $contact->lead->source_id,
+                        $pair,
+                    );
 
-                $byPair[$pair][] =
+                $byPair[$sourcePair] ??= [];
+
+                $byPair[$sourcePair][] =
                     $contact;
             }
         }

@@ -26,7 +26,7 @@
                 </h3>
 
                 <p class="lead-import-description">
-                    Review potential matches and problems before importing. Normal ready rows do not need individual action.
+                    Review duplicate rows and problems before importing. Duplicates will be skipped automatically.
                 </p>
             </div>
         </header>
@@ -58,8 +58,8 @@
                         <strong id="leadImportReviewMatchCount">
                             {{ number_format($matchCount) }}
                         </strong>
-                        <span>Potential matches</span>
-                        <small>May already exist in Lead CMS</small>
+                        <span>Duplicates</span>
+                        <small>Will be skipped automatically</small>
                     </div>
                 </article>
             </div>
@@ -87,15 +87,13 @@
                 role="tablist"
                 aria-label="Import review filters"
             >
+
                 <button
                     class="lead-import-review-tab active"
                     type="button"
-                    data-review-filter="matches"
+                    data-review-filter="sample"
                 >
-                    Potential matches
-                    <span id="leadImportReviewMatchTabCount">
-                        {{ number_format($matchCount) }}
-                    </span>
+                    Ready To Import
                 </button>
 
                 <button
@@ -109,35 +107,21 @@
                     </span>
                 </button>
 
+
                 <button
                     class="lead-import-review-tab"
                     type="button"
-                    data-review-filter="sample"
+                    data-review-filter="matches"
                 >
-                    Ready sample
-                </button>
-            </div>
-
-            <div
-                class="lead-import-review-bulk"
-                id="leadImportReviewBulkActions"
-            >
-                <button
-                    class="btn btn-sm btn-outline-dark"
-                    id="leadImportMatchImportAllBtn"
-                    type="button"
-                >
-                    Import all as new
+                     Duplicates
+                    <span id="leadImportReviewMatchTabCount">
+                        {{ number_format($matchCount) }}
+                    </span>
                 </button>
 
-                <button
-                    class="btn btn-sm btn-outline-dark"
-                    id="leadImportMatchSkipAllBtn"
-                    type="button"
-                >
-                    Skip all
-                </button>
+
             </div>
+
         </div>
 
         <div
@@ -151,8 +135,8 @@
                         <tr>
                             <th scope="col">Row</th>
                             <th scope="col">Lead data</th>
-                            <th scope="col">Potential match</th>
-                            <th scope="col" class="text-end">Decision</th>
+                            <th scope="col">Duplicate of</th>
+                            <th scope="col" class="text-end">Action</th>
                         </tr>
                     </thead>
 
@@ -166,7 +150,7 @@
                                 $firstContact = $contacts[0] ?? [];
                             @endphp
 
-                            <tr data-review-match-row="{{ $match['row_number'] ?? '' }}">
+                            <tr>
                                 <td>
                                     <strong>
                                         {{ $match['row_number'] ?? '—' }}
@@ -208,35 +192,20 @@
                                     @endif
                                 </td>
 
-                                <td>
-                                    <div class="d-flex flex-wrap justify-content-end gap-2">
-                                        <button
-                                            class="btn btn-sm btn-outline-dark"
-                                            type="button"
-                                            data-review-match-decision="import"
-                                            data-review-row-number="{{ $match['row_number'] ?? '' }}"
-                                        >
-                                            Import as new
-                                        </button>
-
-                                        <button
-                                            class="btn btn-sm btn-outline-dark"
-                                            type="button"
-                                            data-review-match-decision="skip"
-                                            data-review-row-number="{{ $match['row_number'] ?? '' }}"
-                                        >
-                                            Skip
-                                        </button>
-                                    </div>
+                                <td class="text-end">
+                                    <span class="badge text-bg-secondary">
+                                        Will be skipped
+                                    </span>
                                 </td>
+
                             </tr>
                         @empty
                             <tr>
                                 <td colspan="4">
                                     <div class="lead-import-empty-state">
                                         <i class="bi bi-check2-circle"></i>
-                                        <strong>No potential matches</strong>
-                                        <p>Nothing needs a duplicate decision right now.</p>
+                                        <strong>No duplicates found</strong>
+                                        <p>No rows need to be skipped as duplicates.</p>
                                     </div>
                                 </td>
                             </tr>

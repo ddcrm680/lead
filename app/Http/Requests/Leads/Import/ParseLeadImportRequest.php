@@ -14,14 +14,23 @@ class ParseLeadImportRequest extends FormRequest
 
     public function rules(): array
     {
+        $extension = strtolower(
+            (string) $this->file('file')
+                ?->getClientOriginalExtension()
+        );
+
+        $typeRule = $extension === 'csv'
+            ? 'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel'
+            : File::types([
+                'xlsx',
+            ]);
+
         return [
             'file' => [
                 'required',
-                File::types([
-                    'xlsx',
-                    'csv',
-                ]),
+                'file',
                 'extensions:xlsx,csv',
+                $typeRule,
             ],
         ];
     }

@@ -6,6 +6,7 @@
     $recognizedColumns = $analysis['recognized_columns'] ?? [];
     $additionalColumns = $analysis['additional_columns'] ?? [];
     $ignoredColumns = $analysis['ignored_columns'] ?? [];
+    $hasSourceColumn = (bool) ($analysis['has_source_column'] ?? false);
 @endphp
 
 <section
@@ -266,14 +267,21 @@
                         for="leadImportDefaultSource"
                     >
                         Source
+                        @if (!$hasSourceColumn)
+                            <span class="text-danger">*</span>
+                        @endif
                     </label>
 
                     <select
                         class="form-select"
                         id="leadImportDefaultSource"
+                        data-source-mapped="{{ $hasSourceColumn ? 'true' : 'false' }}"
                     >
-                        <option value="">
-                            No default source
+                       <option value="">
+                            {{ $hasSourceColumn
+                                ? 'No default source'
+                                : 'Select source'
+                            }}
                         </option>
 
                         @foreach (($options['sources'] ?? []) as $source)

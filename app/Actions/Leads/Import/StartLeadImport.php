@@ -127,6 +127,15 @@ class StartLeadImport
 
                     'ignored_columns' =>
                         $prepared['ignored_columns'],
+
+                      'has_source_column' =>
+                        collect(
+                            $prepared['column_plan']
+                        )->contains(
+                            static fn (array $column): bool =>
+                                ($column['type'] ?? null) === 'core'
+                                && ($column['target'] ?? null) === 'source'
+                        ),
                 ],
 
                 'options' =>

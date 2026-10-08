@@ -19,11 +19,11 @@ class StoreLeadImport
      */
     public function handle(
         array $import,
-        array $matchDecisions,
         ?int $createdBy = null,
     ): array {
         /*
          * Re-run Review immediately before persistence.
+         *
          * The browser Review state is never authoritative.
          */
         $review =
@@ -57,6 +57,20 @@ class StoreLeadImport
             ]);
         }
 
+        /*
+         * Review now classifies hard duplicates
+         * deterministically.
+         *
+         * These include:
+         *
+         * - same source + same normalized contact
+         *   against an existing CRM Lead
+         *
+         * - same source + same normalized contact
+         *   against an earlier accepted import row
+         *
+         * Duplicate rows are always skipped.
+         */
         $currentMatchRows =
             collect(
                 $review['matches'] ?? []
@@ -76,53 +90,6 @@ class StoreLeadImport
                 ->sort()
                 ->values()
                 ->all();
-
-        $decisions = [];
-
-        foreach (
-            $matchDecisions
-            as $rowNumber => $decision
-        ) {
-            $rowNumberString =
-                (string) $rowNumber;
-
-            if (
-                ! ctype_digit(
-                    $rowNumberString
-                )
-                || (int) $rowNumberString <= 0
-            ) {
-                throw ValidationException::withMessages([
-                    'match_decisions' => [
-                        'The submitted potential match decisions are invalid. Please return to Review.',
-                    ],
-                ]);
-            }
-
-            $decisions[
-                (int) $rowNumberString
-            ] = (string) $decision;
-        }
-
-        $decisionRows =
-            array_keys($decisions);
-
-        sort($decisionRows);
-
-        /*
-         * Decisions must correspond exactly to the
-         * potential matches found by the fresh Review.
-         */
-        if (
-            $decisionRows
-            !== $currentMatchRows
-        ) {
-            throw ValidationException::withMessages([
-                'match_decisions' => [
-                    'The potential matches have changed. Please return to Review and confirm your decisions again.',
-                ],
-            ]);
-        }
 
         $matchLookup =
             array_fill_keys(
@@ -154,15 +121,17 @@ class StoreLeadImport
             }
 
             /*
-             * Only current potential-match rows
-             * require an explicit browser decision.
+             * Hard duplicate rows are automatically
+             * skipped.
+             *
+             * The user cannot import them as new because
+             * the same rule is enforced by normal Lead
+             * persistence as well.
              */
             if (
-                isset($matchLookup[$rowNumber])
-                && (
-                    $decisions[$rowNumber]
-                    ?? null
-                ) === 'skip'
+                isset(
+                    $matchLookup[$rowNumber]
+                )
             ) {
                 $processed++;
                 $skipped++;
@@ -239,6 +208,11 @@ class StoreLeadImport
             'failed_count' =>
                 $failed,
 
+            /*
+             * Kept temporarily because the current
+             * frontend Results UI still understands
+             * match_count.
+             */
             'match_count' =>
                 count($currentMatchRows),
 
